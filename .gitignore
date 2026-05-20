@@ -32,6 +32,8 @@ backend/data/
 backend/seesea/.data/
 backend/seesea/**/.data/
 backend/seesea/**/cache/
+!backend/seesea/seesea/seesea/sdk/cache/
+!backend/seesea/seesea/seesea/sdk/cache/**
 backend/seesea/**/storage/
 backend/seesea/**/target/
 tmp_home.json
