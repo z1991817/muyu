@@ -1231,8 +1231,7 @@ function idxLinePath(seed: string, trendUp: boolean): string {
   }
 
   // ---- board refresh ----
-  const API_BASE = (import.meta.env.PUBLIC_API_BASE as string | undefined)
-    ?? (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : '/api');
+  const API_BASE = import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : '/api';
 
   type TrendItem = { platform: string; platformName: string; title: string; url: string; rank: number; heat: string; updatedAt: string };
 

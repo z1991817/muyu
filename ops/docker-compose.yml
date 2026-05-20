@@ -1,9 +1,9 @@
 services:
   seesea:
-    image: python:3.12-slim
-    working_dir: /app
-    command: >-
-      sh -c "pip install --no-cache-dir 'click>=8.3.1' 'rich>=14.3.3' 'seesea==2.2.2' 'seesea-core>=2.0.4' && seesea server --host 0.0.0.0 --port 8080"
+    build:
+      context: ..
+      dockerfile: ops/seesea.Dockerfile
+    image: moyu-seesea:latest
     ports:
       - "${MOYU_SEESEA_PORT:-127.0.0.1:18080}:8080"
     healthcheck:
@@ -15,17 +15,16 @@ services:
     restart: unless-stopped
 
   api:
-    image: python:3.12-slim
-    working_dir: /workspace/backend
-    command: >-
-      sh -c "pip install --no-cache-dir . && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: moyu-api:latest
     environment:
       SEESEA_BASE_URL: http://seesea:8080
-      PYTHONPATH: /workspace/backend
     ports:
       - "${MOYU_API_PORT:-127.0.0.1:18000}:8000"
     volumes:
-      - ../backend:/workspace/backend
+      - moyu_api_data:/app/data
     depends_on:
       seesea:
         condition: service_healthy
@@ -38,16 +37,16 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: node:22-alpine
-    working_dir: /workspace/frontend
-    command: >-
-      sh -c "corepack enable && pnpm install --frozen-lockfile=false && pnpm build && HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs"
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        API_BASE: http://api:8000/api
+    image: moyu-frontend:latest
     environment:
-      PUBLIC_API_BASE: http://api:8000/api
+      API_BASE: http://api:8000/api
     ports:
       - "${MOYU_FRONTEND_PORT:-127.0.0.1:14321}:4321"
-    volumes:
-      - ../frontend:/workspace/frontend
     depends_on:
       api:
         condition: service_healthy
@@ -71,3 +70,6 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  moyu_api_data:

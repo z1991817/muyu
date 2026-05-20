@@ -1,7 +1,6 @@
 ﻿import type { HomeResponse, MarketResponse, SourcesResponse, StocksResponse, TrendsResponse } from "./types";
 
 const API_BASE =
-  import.meta.env.PUBLIC_API_BASE ??
   import.meta.env.API_BASE ??
   (import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api");
 
