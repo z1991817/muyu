@@ -29,6 +29,10 @@ target-version = "py311"
 extend-exclude = ["seesea"]
 force-exclude = true
 
+[tool.setuptools.packages.find]
+include = ["app", "app.*"]
+exclude = ["seesea", "seesea.*"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
