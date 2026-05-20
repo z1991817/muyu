@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>摸鱼热榜 / 今天又是混日子的一天</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,800;1,9..144,400&family=Ma+Shan+Zheng&family=Space+Mono:wght@400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FFF4D6;
+    --paper-deep:#FFE9A8;
+    --ink:#1A1714;
+    --pink:#FF3D7F;
+    --pink-soft:#FFD6E2;
+    --blue:#2540D9;
+    --blue-soft:#CFD8FF;
+    --yellow:#FFC93C;
+    --green:#1F9F5F;
+    --green-soft:#C8F3D9;
+    --orange:#FF6B2C;
+    --lilac:#B080FF;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:"Space Mono","Helvetica Neue",sans-serif;}
+
+  /* paper grain */
+  body{
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(255,61,127,.10) 0, transparent 38%),
+      radial-gradient(circle at 82% 8%,  rgba(37,64,217,.10) 0, transparent 40%),
+      radial-gradient(circle at 92% 88%, rgba(255,201,60,.18) 0, transparent 45%),
+      radial-gradient(circle at 8% 92%,  rgba(31,159,95,.10) 0, transparent 40%);
+    background-color:var(--paper);
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.09 0 0 0 0 0.08 0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/></svg>");
+    mix-blend-mode:multiply;opacity:.55;
+  }
+  /* halftone overlay */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(circle at center, var(--ink) 0.6px, transparent 1.1px);
+    background-size:7px 7px;opacity:.05;
+  }
+
+  .wrap{max-width:1380px;margin:0 auto;padding:28px 36px 80px;position:relative;z-index:2;}
+
+  /* --- top bar --- */
+  .topbar{
+    display:flex;align-items:center;gap:18px;
+    border:2.5px solid var(--ink);background:var(--paper);
+    padding:10px 16px;border-radius:14px;
+    box-shadow:5px 5px 0 var(--ink);
+  }
+  .stamp{
+    font-family:"Bagel Fat One",sans-serif;font-size:18px;letter-spacing:.04em;
+    background:var(--pink);color:var(--paper);padding:4px 12px 5px;border-radius:6px;
+    border:2px solid var(--ink);transform:rotate(-3deg);
+  }
+  .crumbs{font-size:12px;letter-spacing:.18em;text-transform:uppercase;display:flex;gap:14px;color:#3a342f;}
+  .crumbs b{color:var(--ink)}
+  .topbar nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .topbar nav a{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:14px;
+    padding:6px 12px;border:2px solid var(--ink);border-radius:999px;background:var(--paper);
+    text-decoration:none;color:var(--ink);transition:.15s;
+  }
+  .topbar nav a:hover{background:var(--yellow);transform:translateY(-1px) rotate(-1deg)}
+  .topbar nav a.active{background:var(--ink);color:var(--paper)}
+
+  /* --- masthead --- */
+  .mast{
+    margin-top:32px;display:grid;grid-template-columns:1.55fr .9fr;gap:28px;align-items:end;
+    position:relative;
+  }
+  .title{
+    font-family:"Ma Shan Zheng","ZCOOL KuaiLe",cursive;
+    font-size:clamp(86px,11.5vw,170px);line-height:.86;
+    letter-spacing:-.02em;color:var(--ink);
+    position:relative;
+  }
+  .title .row1{display:block;}
+  .title .row2{display:block;color:var(--pink);transform:translateX(38px);}
+  .title em{
+    font-style:normal;
+    background:var(--yellow);
+    border:2.5px solid var(--ink);
+    display:inline-block;padding:0 10px 6px;border-radius:14px;
+    box-shadow:6px 6px 0 var(--ink);transform:rotate(-2deg);
+  }
+  .title svg.squiggle{position:absolute;left:-6px;bottom:-22px;width:340px;height:34px;}
+
+  .lede{
+    font-family:"Fraunces",serif;font-style:italic;font-size:18px;line-height:1.55;
+    color:#2c2723;max-width:46ch;margin-top:46px;
+    border-left:4px solid var(--blue);padding:6px 0 6px 14px;
+  }
+  .lede b{font-style:normal;background:var(--blue-soft);padding:0 4px;}
+
+  /* fish doodle column */
+  .figureCard{
+    position:relative;border:2.5px solid var(--ink);background:var(--paper-deep);
+    border-radius:18px;padding:16px;box-shadow:6px 6px 0 var(--ink);
+    transform:rotate(2deg);min-height:260px;display:flex;flex-direction:column;gap:10px;
+    overflow:hidden;
+  }
+  .figureCard .tape{
+    position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(-3deg);
+    width:120px;height:22px;background:rgba(255,255,255,.65);
+    border:1.5px solid rgba(0,0,0,.25);
+    background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.05) 0 6px, transparent 6px 12px);
+  }
+  .figureCard h4{font-family:"Bagel Fat One",sans-serif;font-size:22px;letter-spacing:.02em;}
+  .figureCard p{font-size:12.5px;line-height:1.6;color:#2a2520;}
+  .figureCard svg.fish{width:100%;height:130px;margin-top:auto;}
+  .figureCard .badge{
+    position:absolute;right:-10px;top:14px;background:var(--pink);color:#fff;border:2.5px solid var(--ink);
+    padding:6px 10px;border-radius:8px;transform:rotate(8deg);font-family:"Bagel Fat One",sans-serif;font-size:13px;
+    box-shadow:3px 3px 0 var(--ink);
+  }
+
+  /* --- info strip (tickers) --- */
+  .tickers{
+    margin-top:34px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  }
+  .ticker{
+    border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);
+    padding:14px 16px;box-shadow:5px 5px 0 var(--ink);position:relative;overflow:hidden;
+  }
+  .ticker:nth-child(1){background:var(--green-soft);transform:rotate(-1deg);}
+  .ticker:nth-child(2){background:var(--blue-soft);transform:rotate(.6deg);}
+  .ticker:nth-child(3){background:var(--pink-soft);transform:rotate(-.4deg);}
+  .ticker:nth-child(4){background:#FFE6BD;transform:rotate(1deg);}
+  .ticker .lab{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#4a423a}
+  .ticker .num{font-family:"Bagel Fat One",sans-serif;font-size:36px;line-height:1.05;margin-top:6px;}
+  .ticker .num small{font-size:14px;font-family:"Space Mono";color:#5a5147;margin-left:4px;}
+  .ticker .delta{font-size:12px;margin-top:4px;}
+  .ticker .delta.up{color:var(--green);}
+  .ticker .delta.down{color:var(--pink);}
+  .ticker svg{position:absolute;right:-6px;bottom:-8px;width:90px;opacity:.85}
+
+  /* --- BOARDS GRID --- */
+  .boards{
+    margin-top:38px;
+    display:grid;grid-template-columns:repeat(12,1fr);gap:20px;
+  }
+
+  .board{
+    border:2.5px solid var(--ink);background:var(--paper);
+    border-radius:18px;padding:16px 18px 14px;
+    box-shadow:6px 6px 0 var(--ink);
+    position:relative;display:flex;flex-direction:column;gap:10px;
+    transition:transform .25s cubic-bezier(.2,.7,.2,1);
+  }
+  .board:hover{transform:translate(-2px,-3px) rotate(-.4deg);box-shadow:8px 9px 0 var(--ink);}
+
+  .b-weibo  {grid-column:span 5;background:#FFE6E1;}
+  .b-zhihu  {grid-column:span 4;background:#E5EBFF;}
+  .b-bili   {grid-column:span 3;background:#E2F5FF;}
+  .b-douyin {grid-column:span 4;background:#1A1714;color:#FFF8E7;}
+  .b-douyin .b-list a{color:#FFF8E7;}
+  .b-douyin .b-list a:hover{background:rgba(255,255,255,.08)}
+  .b-github {grid-column:span 4;background:#FFF1C2;}
+  .b-hupu   {grid-column:span 4;background:#FFD9C2;}
+  .b-tieba  {grid-column:span 6;background:#E6F7E0;}
+  .b-douban {grid-column:span 6;background:#F1E2FF;}
+
+  .b-head{display:flex;align-items:center;gap:10px;}
+  .b-icon{
+    width:40px;height:40px;border-radius:12px;border:2px solid var(--ink);
+    display:grid;place-items:center;font-family:"Bagel Fat One",sans-serif;font-size:18px;
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .b-weibo  .b-icon{background:var(--pink);color:#fff;}
+  .b-zhihu  .b-icon{background:var(--blue);color:#fff;}
+  .b-bili   .b-icon{background:#FF7BAC;color:#fff;}
+  .b-douyin .b-icon{background:var(--paper);color:var(--ink);border-color:var(--paper);}
+  .b-github .b-icon{background:var(--ink);color:var(--paper);}
+  .b-hupu   .b-icon{background:var(--orange);color:#fff;}
+  .b-tieba  .b-icon{background:var(--green);color:#fff;}
+  .b-douban .b-icon{background:var(--lilac);color:#fff;}
+
+  .b-name{font-family:"ZCOOL KuaiLe",sans-serif;font-size:22px;line-height:1;}
+  .b-sub{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:inherit;opacity:.7}
+  .b-tag{
+    margin-left:auto;font-family:"Bagel Fat One",sans-serif;font-size:12px;
+    background:var(--ink);color:var(--paper);padding:3px 9px 4px;border-radius:999px;
+    transform:rotate(2deg);
+  }
+  .b-douyin .b-tag{background:var(--pink);}
+  .b-meta{font-size:11.5px;letter-spacing:.06em;color:inherit;opacity:.7;margin-top:-3px;}
+
+  .b-list{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+  .b-list a{
+    display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:baseline;
+    text-decoration:none;color:inherit;padding:6px 6px;border-radius:8px;line-height:1.3;
+    transition:background .12s;
+  }
+  .b-list a:hover{background:rgba(0,0,0,.06);}
+  .b-list .rk{
+    font-family:"Bagel Fat One",sans-serif;font-size:18px;
+    color:#9a8e7e;text-align:center;
+  }
+  .b-list .top1 .rk{color:var(--pink);}
+  .b-list .top2 .rk{color:var(--orange);}
+  .b-list .top3 .rk{color:var(--blue);}
+  .b-list .ttl{font-size:13.5px;font-weight:400;color:inherit;letter-spacing:.005em;}
+  .b-list .ttl b{font-weight:700;border-bottom:2px solid currentColor;}
+  .b-douyin .b-list .ttl{color:var(--paper);}
+  .b-list .heat{
+    font-family:"Space Mono",monospace;font-size:11px;color:#6b6358;
+    white-space:nowrap;
+  }
+  .b-douyin .b-list .heat{color:#bdb6a8}
+  .b-list .pill{
+    display:inline-block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+    border:1.5px solid currentColor;border-radius:999px;padding:0 6px;margin-left:6px;
+    vertical-align:1px;font-family:"Space Mono",monospace;
+  }
+  .pill.hot{color:var(--pink)}
+  .pill.new{color:var(--blue)}
+  .pill.boom{color:var(--orange)}
+  .pill.brk{color:var(--green)}
+
+  .b-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:8px;border-top:1.5px dashed currentColor;font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;}
+  .b-foot a{color:inherit;text-decoration:none;border-bottom:2px solid currentColor;padding-bottom:1px;}
+
+  /* corner sticker */
+  .sticker{
+    position:absolute;font-family:"Bagel Fat One",sans-serif;font-size:11px;letter-spacing:.05em;
+    border:2px solid var(--ink);padding:2px 7px 3px;border-radius:6px;
+    box-shadow:2px 2px 0 var(--ink);
+  }
+
+  /* --- footer / random --- */
+  .footer{
+    margin-top:60px;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:22px;align-items:start;
+  }
+  .colophon{
+    border:2.5px solid var(--ink);background:var(--paper);border-radius:18px;padding:18px 20px;
+    box-shadow:6px 6px 0 var(--ink);
+  }
+  .colophon h5{font-family:"Bagel Fat One",sans-serif;font-size:22px;letter-spacing:.02em;}
+  .colophon p{font-family:"Fraunces",serif;font-size:14px;line-height:1.6;margin-top:6px;color:#2a2520;}
+  .colophon .credits{margin-top:10px;font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#665d52;}
+  .quote{
+    font-family:"Ma Shan Zheng",cursive;font-size:34px;line-height:1.1;
+    background:var(--ink);color:var(--paper);border-radius:18px;padding:22px;
+    border:2.5px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+    transform:rotate(-1.2deg);position:relative;
+  }
+  .quote span{display:block;margin-top:12px;font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--yellow);}
+  .quote::before{content:"";position:absolute;width:120px;height:120px;left:-30px;top:-30px;
+    background:radial-gradient(circle,var(--yellow) 0,var(--yellow) 50%,transparent 51%);
+    border-radius:50%;z-index:-1;}
+
+  .stickers-grid{display:flex;flex-direction:column;gap:14px;}
+  .doodlecard{
+    border:2.5px solid var(--ink);background:var(--paper);border-radius:14px;padding:14px;
+    box-shadow:5px 5px 0 var(--ink);position:relative;
+  }
+  .doodlecard h6{font-family:"ZCOOL KuaiLe";font-size:16px;margin-bottom:6px;}
+  .doodlecard p{font-size:12px;line-height:1.5;color:#3a332b}
+  .doodlecard.tag1{transform:rotate(1.5deg);background:var(--blue-soft);}
+  .doodlecard.tag2{transform:rotate(-1.6deg);background:var(--pink-soft);}
+
+  /* --- US STOCKS WIDGET (盘中偷瞄) --- */
+  .stocks{
+    margin-top:42px;
+    border:2.5px solid var(--ink);border-radius:20px;
+    background:var(--paper);
+    box-shadow:7px 7px 0 var(--ink);
+    padding:22px 22px 24px;
+    position:relative;
+  }
+  .stocks::before{
+    /* 半色调贴边 */
+    content:"";position:absolute;left:14px;right:14px;top:14px;bottom:14px;
+    border:1.5px dashed rgba(26,23,20,.22);border-radius:14px;pointer-events:none;
+  }
+  .stocks-head{
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;
+    padding-bottom:14px;border-bottom:2.5px solid var(--ink);
+    position:relative;
+  }
+  .stocks-stamp{
+    font-family:"Bagel Fat One",sans-serif;font-size:14px;letter-spacing:.04em;
+    background:var(--ink);color:var(--paper);
+    padding:5px 12px 6px;border-radius:8px;border:2px solid var(--ink);
+    transform:rotate(-3deg);
+    box-shadow:3px 3px 0 var(--yellow);
+  }
+  .stocks-title h3{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:26px;line-height:1;
+  }
+  .stocks-title h3 em{
+    font-style:normal;font-family:"Bagel Fat One",sans-serif;font-size:18px;
+    background:var(--yellow);border:2px solid var(--ink);border-radius:6px;
+    padding:1px 8px 2px;margin-left:8px;display:inline-block;transform:translateY(-3px) rotate(-2deg);
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .stocks-title p{
+    font-family:"Fraunces",serif;font-style:italic;font-size:13px;color:#3a332b;margin-top:4px;
+  }
+  .stocks-status{
+    display:flex;align-items:center;gap:10px;
+    font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:#3a332b;
+    border:2px solid var(--ink);border-radius:999px;padding:6px 12px;background:var(--green-soft);
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .stocks-status .dot{
+    width:9px;height:9px;border-radius:50%;background:var(--green);
+    border:1.5px solid var(--ink);box-shadow:0 0 0 3px rgba(31,159,95,.25);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  .stocks-status b{color:var(--ink);letter-spacing:.22em;}
+
+  /* 三大指数 */
+  .stocks-indices{
+    margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  }
+  .idx{
+    border:2.5px solid var(--ink);border-radius:14px;padding:14px 16px 12px;
+    box-shadow:5px 5px 0 var(--ink);
+    position:relative;display:flex;flex-direction:column;gap:6px;overflow:hidden;
+    background:var(--paper);
+  }
+  .idx-dow{background:#E5EBFF;transform:rotate(-.8deg);}
+  .idx-snp{background:#C8F3D9;transform:rotate(.6deg);}
+  .idx-nas{background:#FFE6E1;transform:rotate(-.3deg);}
+  .idx .sticker-tag{
+    position:absolute;right:-8px;top:10px;
+    font-family:"Bagel Fat One",sans-serif;font-size:11px;letter-spacing:.06em;
+    background:var(--ink);color:var(--paper);
+    border:2px solid var(--ink);padding:2px 8px 3px;border-radius:6px;
+    transform:rotate(6deg);box-shadow:2px 2px 0 var(--yellow);
+  }
+  .idx-name{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:18px;line-height:1;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .idx-name em{
+    font-style:normal;font-family:"Space Mono",monospace;font-size:9.5px;
+    letter-spacing:.22em;text-transform:uppercase;color:#5a5147;
+  }
+  .idx-val{
+    font-family:"Bagel Fat One",sans-serif;font-size:36px;line-height:1.05;
+    letter-spacing:-.01em;color:var(--ink);
+    font-feature-settings:"tnum";
+  }
+  .idx-val small{font-size:18px;color:#3a332b;margin-left:1px;}
+  .idx-delta{
+    font-family:"Space Mono",monospace;font-size:12.5px;letter-spacing:.04em;
+    display:inline-flex;align-items:center;gap:8px;width:fit-content;
+    border:2px solid currentColor;border-radius:999px;padding:2px 10px 3px;
+  }
+  .idx-delta.up{color:var(--green);background:rgba(31,159,95,.12);}
+  .idx-delta.down{color:var(--pink);background:rgba(255,61,127,.10);}
+  .idx-spark{width:100%;height:54px;margin-top:2px;}
+  .idx-foot{
+    margin-top:auto;padding-top:8px;border-top:1.5px dashed rgba(26,23,20,.35);
+    font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:#5a5147;
+    display:flex;justify-content:space-between;
+  }
+
+  /* 热门个股 */
+  .stocks-list-head{
+    margin-top:22px;display:flex;align-items:center;gap:14px;
+  }
+  .stocks-list-head h4{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:20px;line-height:1;
+  }
+  .stocks-list-head h4 em{
+    font-style:normal;font-family:"Space Mono",monospace;font-size:10px;
+    letter-spacing:.24em;text-transform:uppercase;color:#5a5147;margin-left:8px;
+  }
+  .stocks-list-head .rule{
+    flex:1;height:0;border-top:2px dashed rgba(26,23,20,.35);
+  }
+  .stocks-list-head .legend{
+    font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:#5a5147;
+  }
+  .stocks-list-head .legend b.u{color:var(--green)}
+  .stocks-list-head .legend b.d{color:var(--pink)}
+  .stocks-list{
+    margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
+  }
+  .stk{
+    text-decoration:none;color:var(--ink);
+    border:2px solid var(--ink);border-radius:12px;padding:10px 12px 8px;
+    background:var(--paper);box-shadow:4px 4px 0 var(--ink);
+    display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;
+    transition:.18s cubic-bezier(.2,.7,.2,1);
+  }
+  .stk:hover{transform:translate(-2px,-2px) rotate(-.4deg);box-shadow:6px 6px 0 var(--ink);}
+  .stk.up{background:#EAF7EE;}
+  .stk.down{background:#FFEDE7;}
+  .stk-row1{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+  .stk .tic{
+    font-family:"Bagel Fat One",sans-serif;font-size:18px;letter-spacing:.02em;
+  }
+  .stk .cn{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:12px;color:#3a332b;
+  }
+  .stk-row2{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+  .stk .px{
+    font-family:"Space Mono",monospace;font-weight:700;font-size:14px;
+    font-feature-settings:"tnum";
+  }
+  .stk .ch{
+    font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.02em;
+    border:1.5px solid currentColor;border-radius:999px;padding:0 7px 1px;
+  }
+  .stk.up .ch{color:var(--green);}
+  .stk.down .ch{color:var(--pink);}
+  .stk-spark{width:100%;height:28px;margin-top:2px;}
+
+  .stocks-foot{
+    margin-top:14px;display:flex;justify-content:space-between;align-items:center;
+    padding-top:10px;border-top:1.5px dashed rgba(26,23,20,.35);
+    font-family:"Space Mono",monospace;font-size:10.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:#5a5147;
+  }
+  .stocks-foot a{
+    color:var(--ink);text-decoration:none;
+    border-bottom:2px solid var(--pink);padding-bottom:1px;
+  }
+  .stocks-foot .bull{
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .stocks-foot .bull svg{width:24px;height:24px;}
+
+  /* keyframes */
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-6px) rotate(2.6deg)}}
+  .figureCard{animation:bob 6s ease-in-out infinite;}
+  @keyframes wig{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+  .stamp{animation:wig 4.5s ease-in-out infinite;}
+  @keyframes blink{0%,40%,100%{opacity:1}45%,55%{opacity:.15}}
+  .pill.boom{animation:blink 2s linear infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(31,159,95,.25)}50%{box-shadow:0 0 0 7px rgba(31,159,95,0)}}
+
+  @media (max-width:1100px){
+    .boards{grid-template-columns:repeat(6,1fr);}
+    .b-weibo,.b-zhihu,.b-bili,.b-douyin,.b-github,.b-hupu,.b-tieba,.b-douban{grid-column:span 6;}
+    .mast{grid-template-columns:1fr;}
+    .figureCard{transform:none;}
+    .tickers{grid-template-columns:repeat(2,1fr);}
+    .footer{grid-template-columns:1fr;}
+    .stocks-indices{grid-template-columns:1fr;}
+    .stocks-list{grid-template-columns:repeat(2,1fr);}
+    .idx,.idx-dow,.idx-snp,.idx-nas{transform:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="stamp">摸鱼 ISSUE №073</div>
+    <div class="crumbs">
+      <span><b>05/18</b> 周一</span>
+      <span>北京 · 多云 23°</span>
+      <span>距下班 <b>04:12:38</b></span>
+    </div>
+    <nav>
+      <a class="active" href="#">首页</a>
+      <a href="#">热榜</a>
+      <a href="#">订阅</a>
+      <a href="#">小工具</a>
+      <a href="#">月报</a>
+    </nav>
+  </header>
+
+  <!-- MASTHEAD -->
+  <section class="mast">
+    <div>
+      <h1 class="title">
+        <span class="row1">今天又是 <em>混日子</em></span>
+        <span class="row2">的一天 ~</span>
+        <svg class="squiggle" viewBox="0 0 340 34" fill="none">
+          <path d="M2 22 C 30 4, 60 38, 90 18 S 150 -4, 180 18 S 240 36, 270 18 S 330 4, 338 18" stroke="#FF3D7F" stroke-width="4.5" stroke-linecap="round"/>
+        </svg>
+      </h1>
+      <p class="lede">
+        摸鱼热榜把全网在吵的、在笑的、在骂的，揉成<b>一张纸</b>。
+        刷新一下：<b>147 条</b>新热点正在路上。把背挺直，假装在敲代码——
+        其实你在看 B 站新番更新了。
+      </p>
+    </div>
+
+    <aside class="figureCard">
+      <span class="tape"></span>
+      <span class="badge">DAILY!</span>
+      <h4>本日小鱼</h4>
+      <p>每天上线一只新鱼，集齐 30 只可以兑换"老板视而不见"成就。今天的它正在打哈欠。</p>
+      <svg class="fish" viewBox="0 0 320 130" fill="none">
+        <defs>
+          <pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse">
+            <circle cx="3" cy="3" r="1" fill="#1A1714"/>
+          </pattern>
+        </defs>
+        <path d="M30 70 C 60 20, 220 20, 250 70 C 220 120, 60 120, 30 70 Z" fill="#FF3D7F" stroke="#1A1714" stroke-width="3"/>
+        <path d="M250 70 L 305 35 L 295 70 L 305 105 Z" fill="#FFC93C" stroke="#1A1714" stroke-width="3"/>
+        <path d="M30 70 C 60 20, 220 20, 250 70 C 220 120, 60 120, 30 70 Z" fill="url(#dots)" opacity=".22"/>
+        <circle cx="80" cy="58" r="13" fill="#FFF8E7" stroke="#1A1714" stroke-width="3"/>
+        <circle cx="83" cy="60" r="6" fill="#1A1714"/>
+        <circle cx="85" cy="58" r="2" fill="#FFF8E7"/>
+        <path d="M120 88 q 12 8 24 0" stroke="#1A1714" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M150 36 q 6 -8 14 -2" stroke="#1A1714" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <path d="M180 32 q 6 -8 14 -2" stroke="#1A1714" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <text x="180" y="74" font-family="Bagel Fat One" font-size="18" fill="#1A1714">Z z z</text>
+      </svg>
+    </aside>
+  </section>
+
+  <!-- TICKERS -->
+  <section class="tickers">
+    <div class="ticker">
+      <div class="lab">全网热度</div>
+      <div class="num">8,427<small>万</small></div>
+      <div class="delta up">↑ 12.4% 比昨天烫嘴</div>
+      <svg viewBox="0 0 80 50"><polyline fill="none" stroke="#1F9F5F" stroke-width="3" points="2,40 14,32 26,36 38,18 50,24 62,8 78,14"/></svg>
+    </div>
+    <div class="ticker">
+      <div class="lab">已摸时长</div>
+      <div class="num">02:47<small>:09</small></div>
+      <div class="delta up">↑ 距摸鱼自由仅差 4h12m</div>
+      <svg viewBox="0 0 80 50"><circle cx="40" cy="25" r="18" fill="none" stroke="#2540D9" stroke-width="3"/><path d="M40 25 L 40 12" stroke="#2540D9" stroke-width="3" stroke-linecap="round"/><path d="M40 25 L 52 25" stroke="#FF3D7F" stroke-width="3" stroke-linecap="round"/></svg>
+    </div>
+    <div class="ticker">
+      <div class="lab">爆点频率</div>
+      <div class="num">3.2<small>条/分钟</small></div>
+      <div class="delta down">↓ 比双十一冷静一点</div>
+      <svg viewBox="0 0 80 50"><path d="M2 40 L 12 18 L 22 30 L 32 12 L 44 26 L 56 8 L 70 22 L 78 14" fill="none" stroke="#FF3D7F" stroke-width="3"/></svg>
+    </div>
+    <div class="ticker">
+      <div class="lab">聚合平台</div>
+      <div class="num">24<small>个</small></div>
+      <div class="delta up">+ 新增 V2EX & 即刻</div>
+      <svg viewBox="0 0 80 50">
+        <rect x="6" y="14" width="14" height="22" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+        <rect x="26" y="6" width="14" height="36" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+        <rect x="46" y="20" width="14" height="20" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+        <rect x="66" y="10" width="10" height="30" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- BOARDS -->
+  <section class="boards">
+
+    <!-- WEIBO -->
+    <article class="board b-weibo">
+      <span class="sticker" style="top:-12px;right:18px;background:var(--yellow);">FRESH</span>
+      <div class="b-head">
+        <div class="b-icon">微</div>
+        <div>
+          <div class="b-name">微博热搜</div>
+          <div class="b-sub">WEIBO · 实时</div>
+        </div>
+        <span class="b-tag">3 分钟前</span>
+      </div>
+      <div class="b-meta">沸 12 · 新 9 · 爆 3 · 综合在榜 50 条</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>地铁阿姨往保温杯里下了 11 颗枸杞</b><span class="pill boom">爆</span></span><span class="heat">2,184k</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">某厂老板说今年要拥抱 AI 但工资不涨<span class="pill hot">沸</span></span><span class="heat">1,902k</span></a></li>
+        <li class="top3"><a href="#"><span class="rk">03</span><span class="ttl">五一去淄博的人现在在反思什么</span><span class="heat">1,341k</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">熊猫宝宝偷了饲养员的工牌</span><span class="heat">1,128k</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">大学室友十年后在地铁互相没认出<span class="pill new">新</span></span><span class="heat">986k</span></a></li>
+        <li><a href="#"><span class="rk">06</span><span class="ttl">奶茶第三杯半价但要喝完前两杯</span><span class="heat">874k</span></a></li>
+        <li><a href="#"><span class="rk">07</span><span class="ttl">男生也开始在工位偷偷抹防晒了</span><span class="heat">722k</span></a></li>
+        <li><a href="#"><span class="rk">08</span><span class="ttl">周一早高峰地铁的味道再次上热搜</span><span class="heat">681k</span></a></li>
+      </ol>
+      <div class="b-foot"><span>HOT · 持续翻滚</span><a href="#">查看完整 50 条 →</a></div>
+    </article>
+
+    <!-- ZHIHU -->
+    <article class="board b-zhihu">
+      <div class="b-head">
+        <div class="b-icon">知</div>
+        <div>
+          <div class="b-name">知乎热榜</div>
+          <div class="b-sub">ZHIHU · 讨论中</div>
+        </div>
+        <span class="b-tag">1 分钟</span>
+      </div>
+      <div class="b-meta">问题 38 · 回答 12.6 万 · 长文预警 ⚠</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>为什么年轻人开始反向考公？</b></span><span class="heat">3,420 万</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">有哪些"上班才看得懂"的笑话<span class="pill hot">热</span></span><span class="heat">2,810 万</span></a></li>
+        <li class="top3"><a href="#"<span class="rk">03</span><span class="ttl">如何看待 4 天工作制在某厂试点</span><span class="heat">2,108 万</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">买房的人现在后悔吗，没买的呢</span><span class="heat">1,772 万</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">猫为什么坚持坐在你的键盘上</span><span class="heat">1,540 万</span></a></li>
+        <li><a href="#"><span class="rk">06</span><span class="ttl">毕业五年想换行还来得及吗<span class="pill new">新</span></span><span class="heat">1,213 万</span></a></li>
+        <li><a href="#"><span class="rk">07</span><span class="ttl">读博中途退学是一种什么体验</span><span class="heat">988 万</span></a></li>
+      </ol>
+      <div class="b-foot"><span>谢邀 · 人在工位</span><a href="#">更多问题 →</a></div>
+    </article>
+
+    <!-- BILI -->
+    <article class="board b-bili">
+      <span class="sticker" style="top:-10px;left:-10px;background:var(--pink);color:#fff;transform:rotate(-8deg);">SUB!</span>
+      <div class="b-head">
+        <div class="b-icon">B</div>
+        <div>
+          <div class="b-name">哔哩哔哩</div>
+          <div class="b-sub">B站 · 全站</div>
+        </div>
+      </div>
+      <div class="b-meta">投稿 720 · 三连量 ↑</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>我把猫塞进了游戏 PVP 段位</b></span><span class="heat">412 万</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">用 AI 复刻 2008 年的中文互联网</span><span class="heat">288 万</span></a></li>
+        <li class="top3"><a href="#"><span class="rk">03</span><span class="ttl">普通话十级挑战之四川话版</span><span class="heat">261 万</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">我妈以为我搞 IT 是修电脑的</span><span class="heat">198 万</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">考古上世纪的儿童食品广告</span><span class="heat">142 万</span></a></li>
+      </ol>
+      <div class="b-foot"><span>三连预警</span><a href="#">看更多 →</a></div>
+    </article>
+
+    <!-- DOUYIN -->
+    <article class="board b-douyin">
+      <div class="b-head">
+        <div class="b-icon">抖</div>
+        <div>
+          <div class="b-name">抖音热点</div>
+          <div class="b-sub">DOUYIN · 此刻</div>
+        </div>
+        <span class="b-tag">LIVE</span>
+      </div>
+      <div class="b-meta">直播间 12.4 万 · 短视频在喷</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>退休大爷在小区开起了脱口秀专场</b><span class="pill boom">爆</span></span><span class="heat">1.2 亿</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">10 元一碗的早餐震惊北上广</span><span class="heat">8,920 万</span></a></li>
+        <li class="top3"><a href="#"><span class="rk">03</span><span class="ttl">外国主播翻译《孤勇者》翻车</span><span class="heat">7,480 万</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">奶茶店员工卧底纪录片<span class="pill brk">突</span></span><span class="heat">6,210 万</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">当 985 毕业生开始送外卖一年</span><span class="heat">5,802 万</span></a></li>
+        <li><a href="#"><span class="rk">06</span><span class="ttl">拍下了流浪猫开会的现场</span><span class="heat">4,310 万</span></a></li>
+      </ol>
+      <div class="b-foot"><span>FOR YOU · 沉浸黑洞</span><a href="#">继续往下滑 →</a></div>
+    </article>
+
+    <!-- GITHUB -->
+    <article class="board b-github">
+      <div class="b-head">
+        <div class="b-icon">G</div>
+        <div>
+          <div class="b-name">GitHub Trending</div>
+          <div class="b-sub">DAILY · 今日</div>
+        </div>
+        <span class="b-tag">技术宅</span>
+      </div>
+      <div class="b-meta">语言：All · 时间：Today</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>karpathy / nano-vlm-lab</b><span class="pill new">new</span></span><span class="heat">+4.1k ★</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">vercel / next-typed-routes</span><span class="heat">+2.7k ★</span></a></li>
+        <li class="top3"><a href="#"><span class="rk">03</span><span class="ttl">posthog / dashboards-os</span><span class="heat">+2.2k ★</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">ggerganov / llama.rs port</span><span class="heat">+1.9k ★</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">tldraw / collab-canvas</span><span class="heat">+1.4k ★</span></a></li>
+      </ol>
+      <div class="b-foot"><span>ALL LANGS · TODAY</span><a href="#">看周榜 →</a></div>
+    </article>
+
+    <!-- HUPU -->
+    <article class="board b-hupu">
+      <span class="sticker" style="top:-12px;right:-10px;background:var(--green);color:#fff;transform:rotate(6deg);">BBS</span>
+      <div class="b-head">
+        <div class="b-icon">H</div>
+        <div>
+          <div class="b-name">虎扑步行街</div>
+          <div class="b-sub">HUPU · 男人社区</div>
+        </div>
+      </div>
+      <div class="b-meta">在线 21 万 · 灯泡满天飞</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>男朋友月薪 8000 想买摩托怎么劝</b></span><span class="heat">12.4 亮</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">JR 们最难忘的高中食堂菜</span><span class="heat">9,820 亮</span></a></li>
+        <li class="top3"><a href="#"><span class="rk">03</span><span class="ttl">现在小学生流行什么暗号</span><span class="heat">7,201 亮</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">人到中年，发现最好的朋友是老婆</span><span class="heat">6,012 亮</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">如何评价掘金 vs 凯尔特人</span><span class="heat">5,440 亮</span></a></li>
+      </ol>
+      <div class="b-foot"><span>STREET · 24h</span><a href="#">进街 →</a></div>
+    </article>
+
+    <!-- TIEBA -->
+    <article class="board b-tieba">
+      <div class="b-head">
+        <div class="b-icon">贴</div>
+        <div>
+          <div class="b-name">百度贴吧</div>
+          <div class="b-sub">TIEBA · 神奇生物在这里</div>
+        </div>
+        <span class="b-tag">古早味</span>
+      </div>
+      <div class="b-meta">综合 · 24 小时榜单</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>2008 年的我穿越回来想说点什么</b></span><span class="heat">8.2 万</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">家里阳台养的多肉成精了求鉴</span><span class="heat">6.7 万</span></a></li>
+        <li class="top3"><a href="#"><span class="rk">03</span><span class="ttl">为什么古早 QQ 空间黑历史现在看反而有意思</span><span class="heat">5.4 万</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">魔兽世界吧老哥们都还在吗</span><span class="heat">4.1 万</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">小学课本插图大型考古现场<span class="pill hot">热</span></span><span class="heat">3.6 万</span></a></li>
+        <li><a href="#"><span class="rk">06</span><span class="ttl">这只猫看起来有亿点不对劲</span><span class="heat">2.9 万</span></a></li>
+      </ol>
+      <div class="b-foot"><span>BAIDU · TIEBA</span><a href="#">进吧逛逛 →</a></div>
+    </article>
+
+    <!-- DOUBAN -->
+    <article class="board b-douban">
+      <span class="sticker" style="top:-12px;right:18px;background:var(--ink);color:var(--paper);">小组</span>
+      <div class="b-head">
+        <div class="b-icon">豆</div>
+        <div>
+          <div class="b-name">豆瓣小组</div>
+          <div class="b-sub">DOUBAN · 文艺青年</div>
+        </div>
+      </div>
+      <div class="b-meta">精选 · 今日热议</div>
+      <ol class="b-list">
+        <li class="top1"><a href="#"><span class="rk">01</span><span class="ttl"><b>租房遇到神仙房东是种什么体验</b></span><span class="heat">回 1.2k</span></a></li>
+        <li class="top2"><a href="#"><span class="rk">02</span><span class="ttl">攒钱小组：把外卖钱存起来一年后</span><span class="heat">回 988</span></a></li>
+        <li class="top3"><a href="#"><span class="rk">03</span><span class="ttl">最近在读：让我想戒社交媒体的书</span><span class="heat">回 720</span></a></li>
+        <li><a href="#"><span class="rk">04</span><span class="ttl">看完这部电影忽然想给妈妈打电话</span><span class="heat">回 612</span></a></li>
+        <li><a href="#"><span class="rk">05</span><span class="ttl">把家里改造成图书馆的人都很猛</span><span class="heat">回 540</span></a></li>
+        <li><a href="#"><span class="rk">06</span><span class="ttl">奇葩室友图鉴 · 第 17 季<span class="pill hot">热</span></span><span class="heat">回 482</span></a></li>
+      </ol>
+      <div class="b-foot"><span>豆瓣 · 小组精选</span><a href="#">围观 →</a></div>
+    </article>
+
+  </section>
+
+  <!-- US STOCKS WIDGET · 盘中偷瞄 -->
+  <section class="stocks">
+    <header class="stocks-head">
+      <span class="stocks-stamp">NYSE 偷瞄</span>
+      <div class="stocks-title">
+        <h3>美股今日大盘 <em>BULL ?</em></h3>
+        <p>开市 2 小时 14 分钟 · 三大指数全线收红，纳指被科技七姐妹拽着跑。</p>
+      </div>
+      <div class="stocks-status">
+        <span class="dot"></span><b>LIVE</b> · 09:43 ET
+      </div>
+    </header>
+
+    <!-- 三大指数 -->
+    <div class="stocks-indices">
+      <!-- DOW -->
+      <article class="idx idx-dow">
+        <span class="sticker-tag">DJI</span>
+        <div class="idx-name">道琼斯 <em>Dow 30</em></div>
+        <div class="idx-val">42,874<small>.31</small></div>
+        <div class="idx-delta up">▲ +218.46 &nbsp;(+0.51%)</div>
+        <svg class="idx-spark" viewBox="0 0 220 54" preserveAspectRatio="none" fill="none">
+          <defs>
+            <linearGradient id="gd1" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#1F9F5F" stop-opacity=".35"/>
+              <stop offset="1" stop-color="#1F9F5F" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M2 42 L 18 36 L 34 38 L 50 30 L 66 32 L 82 24 L 98 28 L 114 22 L 130 24 L 146 16 L 162 18 L 178 12 L 196 14 L 218 8 L 218 54 L 2 54 Z" fill="url(#gd1)"/>
+          <path d="M2 42 L 18 36 L 34 38 L 50 30 L 66 32 L 82 24 L 98 28 L 114 22 L 130 24 L 146 16 L 162 18 L 178 12 L 196 14 L 218 8" stroke="#1F9F5F" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="218" cy="8" r="3.4" fill="#FFF4D6" stroke="#1F9F5F" stroke-width="2"/>
+        </svg>
+        <div class="idx-foot"><span>OPEN 42,655.85</span><span>HIGH 42,901</span></div>
+      </article>
+
+      <!-- S&P -->
+      <article class="idx idx-snp">
+        <span class="sticker-tag">SPX</span>
+        <div class="idx-name">标普 500 <em>S&amp;P 500</em></div>
+        <div class="idx-val">5,824<small>.92</small></div>
+        <div class="idx-delta up">▲ +37.18 &nbsp;(+0.64%)</div>
+        <svg class="idx-spark" viewBox="0 0 220 54" preserveAspectRatio="none" fill="none">
+          <defs>
+            <linearGradient id="gd2" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#1F9F5F" stop-opacity=".35"/>
+              <stop offset="1" stop-color="#1F9F5F" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M2 38 L 18 32 L 34 36 L 50 26 L 66 30 L 82 22 L 98 16 L 114 22 L 130 14 L 146 18 L 162 10 L 178 14 L 196 8 L 218 6 L 218 54 L 2 54 Z" fill="url(#gd2)"/>
+          <path d="M2 38 L 18 32 L 34 36 L 50 26 L 66 30 L 82 22 L 98 16 L 114 22 L 130 14 L 146 18 L 162 10 L 178 14 L 196 8 L 218 6" stroke="#1F9F5F" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="218" cy="6" r="3.4" fill="#FFF4D6" stroke="#1F9F5F" stroke-width="2"/>
+        </svg>
+        <div class="idx-foot"><span>OPEN 5,787.74</span><span>HIGH 5,832</span></div>
+      </article>
+
+      <!-- NASDAQ -->
+      <article class="idx idx-nas">
+        <span class="sticker-tag">IXIC</span>
+        <div class="idx-name">纳斯达克 <em>Nasdaq Comp</em></div>
+        <div class="idx-val">18,612<small>.04</small></div>
+        <div class="idx-delta down">▼ −24.07 &nbsp;(−0.13%)</div>
+        <svg class="idx-spark" viewBox="0 0 220 54" preserveAspectRatio="none" fill="none">
+          <defs>
+            <linearGradient id="gd3" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#FF3D7F" stop-opacity=".30"/>
+              <stop offset="1" stop-color="#FF3D7F" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M2 14 L 18 18 L 34 12 L 50 22 L 66 18 L 82 28 L 98 24 L 114 32 L 130 28 L 146 36 L 162 30 L 178 38 L 196 34 L 218 42 L 218 54 L 2 54 Z" fill="url(#gd3)"/>
+          <path d="M2 14 L 18 18 L 34 12 L 50 22 L 66 18 L 82 28 L 98 24 L 114 32 L 130 28 L 146 36 L 162 30 L 178 38 L 196 34 L 218 42" stroke="#FF3D7F" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="218" cy="42" r="3.4" fill="#FFF4D6" stroke="#FF3D7F" stroke-width="2"/>
+        </svg>
+        <div class="idx-foot"><span>OPEN 18,636.11</span><span>LOW 18,548</span></div>
+      </article>
+    </div>
+
+    <!-- 热门个股 -->
+    <div class="stocks-list-head">
+      <h4>热门个股 <em>· Watchlist of the day</em></h4>
+      <span class="rule"></span>
+      <span class="legend">▲ <b class="u">绿涨</b> &nbsp; ▼ <b class="d">粉跌</b> &nbsp;·&nbsp; 美股逻辑</span>
+    </div>
+
+    <div class="stocks-list">
+      <a class="stk up" href="#">
+        <div class="stk-row1"><span class="tic">NVDA</span><span class="cn">英伟达</span></div>
+        <div class="stk-row2"><span class="px">$ 142.86</span><span class="ch">+2.41%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 22 L 14 18 L 26 20 L 38 14 L 52 16 L 66 10 L 80 12 L 94 6 L 108 8 L 118 4" stroke="#1F9F5F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+      <a class="stk up" href="#">
+        <div class="stk-row1"><span class="tic">AAPL</span><span class="cn">苹果</span></div>
+        <div class="stk-row2"><span class="px">$ 226.41</span><span class="ch">+0.84%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 18 L 14 16 L 26 18 L 38 14 L 52 16 L 66 12 L 80 14 L 94 10 L 108 12 L 118 8" stroke="#1F9F5F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+      <a class="stk down" href="#">
+        <div class="stk-row1"><span class="tic">TSLA</span><span class="cn">特斯拉</span></div>
+        <div class="stk-row2"><span class="px">$ 248.07</span><span class="ch">−1.92%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 8 L 14 12 L 26 10 L 38 16 L 52 14 L 66 18 L 80 20 L 94 18 L 108 22 L 118 24" stroke="#FF3D7F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+      <a class="stk up" href="#">
+        <div class="stk-row1"><span class="tic">MSFT</span><span class="cn">微软</span></div>
+        <div class="stk-row2"><span class="px">$ 432.19</span><span class="ch">+1.07%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 20 L 14 18 L 26 18 L 38 14 L 52 16 L 66 12 L 80 14 L 94 8 L 108 10 L 118 6" stroke="#1F9F5F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+      <a class="stk up" href="#">
+        <div class="stk-row1"><span class="tic">GOOG</span><span class="cn">谷歌</span></div>
+        <div class="stk-row2"><span class="px">$ 184.62</span><span class="ch">+0.46%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 16 L 14 18 L 26 14 L 38 16 L 52 12 L 66 14 L 80 10 L 94 12 L 108 8 L 118 10" stroke="#1F9F5F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+      <a class="stk down" href="#">
+        <div class="stk-row1"><span class="tic">AMZN</span><span class="cn">亚马逊</span></div>
+        <div class="stk-row2"><span class="px">$ 198.74</span><span class="ch">−0.38%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 12 L 14 14 L 26 12 L 38 16 L 52 14 L 66 18 L 80 16 L 94 20 L 108 18 L 118 22" stroke="#FF3D7F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+      <a class="stk up" href="#">
+        <div class="stk-row1"><span class="tic">META</span><span class="cn">Meta</span></div>
+        <div class="stk-row2"><span class="px">$ 568.31</span><span class="ch">+1.84%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 22 L 14 18 L 26 20 L 38 14 L 52 12 L 66 14 L 80 8 L 94 10 L 108 6 L 118 4" stroke="#1F9F5F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+      <a class="stk up" href="#">
+        <div class="stk-row1"><span class="tic">BABA</span><span class="cn">阿里巴巴</span></div>
+        <div class="stk-row2"><span class="px">$ 92.16</span><span class="ch">+3.27%</span></div>
+        <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d="M2 24 L 14 22 L 26 20 L 38 18 L 52 16 L 66 12 L 80 14 L 94 8 L 108 6 L 118 2" stroke="#1F9F5F" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </a>
+    </div>
+
+    <div class="stocks-foot">
+      <span class="bull">
+        <svg viewBox="0 0 28 28" fill="none" stroke="#1A1714" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 22 c0 -6 4 -10 9 -10 s9 4 9 10"/>
+          <path d="M5 22 l -2 3 M 23 22 l 2 3"/>
+          <path d="M9 14 q 5 -8 10 0"/>
+          <circle cx="11" cy="11" r="1.4" fill="#1A1714"/>
+          <circle cx="17" cy="11" r="1.4" fill="#1A1714"/>
+          <path d="M11 7 l -3 -4 M 17 7 l 3 -4"/>
+        </svg>
+        牛市 ON · 含咖啡因量 ↑
+      </span>
+      <span>DELAYED 15 MIN · 仅供工位偷瞄 · 不构成投资建议</span>
+      <a href="#">查看完整盘面 →</a>
+    </div>
+  </section>
+
+  <!-- FOOTER ROW -->
+  <section class="footer">
+    <div class="colophon">
+      <h5>关于 摸鱼热榜</h5>
+      <p>这是一份每分钟刷新一次的"窝在工位也能看世界"小报。我们抓取主流社区，
+        把最让人想点开的标题集中到一张纸上——你只需要一秒切回工作页面的反应速度。</p>
+      <div class="credits">
+        UPDATED · 11:24:06 &nbsp;·&nbsp; 24 SOURCES &nbsp;·&nbsp; PRINTED ON CREAM #FFF4D6 &nbsp;·&nbsp; v0.7
+      </div>
+    </div>
+
+    <div class="quote">
+      "上班八小时<br/>摸鱼七小时半<br/>剩下半小时<br/>用来想下一次摸鱼。"
+      <span>— 工位哲学家 · 第 73 期</span>
+    </div>
+
+    <div class="stickers-grid">
+      <div class="doodlecard tag1">
+        <h6>🪄 摸鱼小技巧</h6>
+        <p>把屏幕分两半，左边 IDE 假装在写代码，右边热榜——只要 Alt+Tab 够快，老板永远在你的盲区。</p>
+      </div>
+      <div class="doodlecard tag2">
+        <h6>📮 投稿入口</h6>
+        <p>有趣的、离谱的、绝对在公司不能说的——丢进我们 issue。每周精选会以"匿名漂流瓶"形式登上版面。</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,570 @@
+---
+import "../styles/global.css";
+import MainTopBar from "../components/MainTopBar.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+
+const updatedAt = new Date().toISOString();
+const updatedDate = new Date(updatedAt).toLocaleDateString("zh-CN", {
+  month: "2-digit",
+  day: "2-digit",
+});
+const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>关于我 · 摸鱼热榜</title>
+    <meta name="description" content="摸鱼热榜站长自白——一个喜欢折腾小工具的前端仔" />
+    <link rel="canonical" href="/about" />
+    <link rel="stylesheet" href="/fonts/fonts-subset.css" />
+  </head>
+  <body>
+    <main>
+      <div class="wrap">
+
+        <!-- 顶栏 -->
+        <MainTopBar
+          issueLabel="摸鱼 ISSUE №001"
+          navItems={[
+            { href: "/#boards-section", label: "热榜" },
+            { href: "/about", label: "关于我", active: true },
+          ]}
+        >
+          <Fragment slot="crumbs">
+            <span><b>{updatedDate}</b> 更新</span>
+            <span>站长档案 · ABOUT</span>
+            <span>同步时间 <b>{updatedTime}</b></span>
+          </Fragment>
+        </MainTopBar>
+
+        <!-- Hero -->
+        <section class="hero">
+          <div class="hero-left">
+            <div class="hero-title-wrap">
+              <h1 class="hero-title">本站站长</h1>
+              <svg class="squiggle" viewBox="0 0 320 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M2 9 C22 2, 42 16, 62 9 S102 2, 122 9 S162 16, 182 9 S222 2, 242 9 S282 16, 302 9 S318 4, 318 9" stroke="var(--pink)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+              </svg>
+            </div>
+            <p class="hero-lede">一个前端仔的工位自白</p>
+            <p class="hero-sub">把背挺直，假装在敲代码</p>
+          </div>
+          <div class="hero-right">
+            <div class="tape tape-top"></div>
+            <div class="namecard">
+              <div class="namecard-role">WEB 前端 · 折腾爱好者</div>
+              <div class="namecard-divider"></div>
+              <div class="namecard-site">摸鱼热榜</div>
+              <div class="namecard-url">moyu.example.com</div>
+              <div class="namecard-stamp">SINCE<br/>2026</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 工位档案 -->
+        <section class="profile-section">
+          <div class="section-label">工位档案 · 第 001 号</div>
+          <div class="profile-grid">
+            <div class="profile-text">
+              <p>你好，我是这个网站的唯一员工。</p>
+              <p>白天写代码，晚上折腾小工具——这大概是我的人生主线任务。作为一名 WEB 前端开发者，我的日常是：把设计稿还原成像素级完美的页面，然后被产品经理改回去。</p>
+              <p>摸鱼热榜是我在某个周末灵光一闪做的东西。起因很简单：我想在一个地方看完所有热搜，不想开十几个 tab，也不想被算法推送一堆我不感兴趣的内容。</p>
+              
+            </div>
+            <div class="skills-note">
+              <div class="skills-note-title">技能树</div>
+              <div class="skills-note-divider"></div>
+              <ul class="skills-list">
+                <li>HTML / CSS</li>
+                <li>JavaScript</li>
+                <li>TypeScript</li>
+                <li>Astro</li>
+                <li>折腾精神 ★★★★★</li>
+                <li>摸鱼哲学 ★★★★★</li>
+              </ul>
+              <div class="skills-note-foot">以上技能均已点满</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 造轮子动机书 -->
+        <section class="motive-section">
+          <div class="motive-inner">
+            <div class="motive-stamp-wrap">
+              <div class="section-label">造轮子动机书</div>
+              <div class="motive-stamp">WHY</div>
+            </div>
+            <blockquote class="motive-quote">
+              <p>每次打开微博、知乎、B站，都要在五个 app 之间反复横跳。</p>
+              <p>我只是想知道今天发生了什么，不是要被推荐算法喂饱。</p>
+              <p>所以我做了这个网站：把公开热榜聚合在一起，点击直接跳原站，不转载、不摘要、不评论。就是一个干净的导航页，仅此而已。</p>
+              <p class="motive-aside">顺便加了美股大盘，因为我也想知道今天亏了多少。<br/><small>（纯信息展示，不构成投资建议，真的。）</small></p>
+            </blockquote>
+            <!-- 小鱼装饰 -->
+            <svg class="deco-fish" viewBox="0 0 80 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <ellipse cx="38" cy="25" rx="26" ry="14" fill="var(--blue-soft)" stroke="var(--ink)" stroke-width="2"/>
+              <path d="M64 25 L78 14 L78 36 Z" fill="var(--blue-soft)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>
+              <circle cx="20" cy="21" r="3" fill="var(--ink)"/>
+              <path d="M30 20 Q34 17 38 20" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+              <circle cx="21" cy="21" r="1" fill="var(--paper)"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- 联系本鱼 -->
+        <section class="contact-section">
+          <div class="section-label">联系本鱼</div>
+          <div class="contact-grid">
+            <div class="contact-left">
+              <p class="contact-intro">有 bug？有建议？觉得哪个平台应该加进来？欢迎来找我聊，我不咬人。</p>
+              <div class="contact-chips">
+                <div class="chip qq-chip">
+                  <div class="chip-label">QQ 号码</div>
+                  <div class="chip-value">377584613</div>
+                  <div class="chip-hint">备注「摸鱼热榜」</div>
+                </div>
+                <div class="chip group-chip">
+                  <div class="chip-label">QQ 群 · 快乐摸鱼</div>
+                  <div class="chip-value">897355748</div>
+                  <div class="chip-hint">扫码或点击加入</div>
+                </div>
+              </div>
+            </div>
+            <div class="contact-right">
+              <div class="qr-wrap">
+                <span class="qr-sticker">SCAN ME</span>
+                <img src="/qq-group-qrcod.png" alt="QQ群二维码 · 快乐摸鱼 897355748" class="qr-img" width="140" height="140" />
+                <div class="qr-label">快乐摸鱼 · 897355748</div>
+              </div>
+              <a href="https://qm.qq.com/q/it0wKyr5Di" class="qq-join-btn" target="_blank" rel="noopener noreferrer">
+                点击加入 QQ 群 →
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <SiteFooter />
+
+      </div>
+    </main>
+
+    <style>
+      /* ── Hero ── */
+      .hero {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 40px;
+        align-items: center;
+        margin-bottom: 56px;
+        position: relative;
+        z-index: 2;
+      }
+      .hero-left { position: relative; }
+      .hero-title-wrap { position: relative; display: inline-block; margin-bottom: 8px; }
+      .hero-title {
+        font-family: "Ma Shan Zheng", cursive;
+        font-size: clamp(64px, 9vw, 120px);
+        line-height: 1;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .squiggle {
+        position: absolute;
+        bottom: -6px;
+        left: 0;
+        width: 100%;
+        height: 18px;
+        z-index: 0;
+      }
+      .hero-lede {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-size: 22px;
+        margin: 18px 0 8px;
+        opacity: .85;
+      }
+      .hero-sub {
+        font-family: "Space Mono", monospace;
+        font-size: 12px;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        opacity: .5;
+        margin: 0;
+      }
+
+      /* 名片卡 */
+      .hero-right { position: relative; display: flex; justify-content: center; }
+      .tape {
+        position: absolute;
+        width: 60px; height: 22px;
+        background: repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0, rgba(255,255,255,.55) 4px, rgba(255,201,60,.35) 4px, rgba(255,201,60,.35) 8px);
+        border: 1.5px solid rgba(26,23,20,.2);
+        border-radius: 3px;
+        z-index: 3;
+      }
+      .tape-top { top: -10px; left: 50%; transform: translateX(-50%) rotate(-3deg); }
+      .namecard {
+        background: var(--yellow);
+        border: 2.5px solid var(--ink);
+        border-radius: 18px;
+        box-shadow: 8px 8px 0 var(--ink);
+        padding: 28px 32px;
+        transform: rotate(2deg);
+        position: relative;
+        min-width: 240px;
+        transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s;
+      }
+      .namecard:hover {
+        transform: rotate(1deg) translate(-2px,-3px);
+        box-shadow: 10px 11px 0 var(--ink);
+      }
+      .namecard-role {
+        font-family: "ZCOOL KuaiLe", sans-serif;
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+      .namecard-divider {
+        border-top: 1.5px dashed var(--ink);
+        margin: 10px 0;
+        opacity: .5;
+      }
+      .namecard-site {
+        font-family: "Ma Shan Zheng", cursive;
+        font-size: 28px;
+        line-height: 1.1;
+      }
+      .namecard-url {
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        opacity: .6;
+        margin-top: 4px;
+        letter-spacing: .08em;
+      }
+      .namecard-stamp {
+        position: absolute;
+        bottom: 18px; right: 18px;
+        font-family: "Bagel Fat One", sans-serif;
+        font-size: 11px;
+        letter-spacing: .12em;
+        text-align: center;
+        line-height: 1.2;
+        background: var(--pink);
+        color: #fff;
+        border: 2px solid var(--ink);
+        border-radius: 8px;
+        padding: 4px 8px;
+        box-shadow: 2px 2px 0 var(--ink);
+        transform: rotate(-6deg);
+      }
+
+      /* ── 工位档案 ── */
+      .profile-section {
+        margin-bottom: 56px;
+        position: relative;
+        z-index: 2;
+      }
+      .section-label {
+        font-family: "ZCOOL KuaiLe", sans-serif;
+        font-size: 22px;
+        margin-bottom: 20px;
+        display: inline-block;
+        border-bottom: 3px solid var(--ink);
+        padding-bottom: 4px;
+      }
+      .profile-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr;
+        gap: 32px;
+        align-items: start;
+      }
+      .profile-text {
+        background: var(--paper-deep);
+        border: 2.5px solid var(--ink);
+        border-radius: 18px;
+        box-shadow: 5px 5px 0 var(--ink);
+        padding: 28px 32px;
+        transform: rotate(-0.6deg);
+        font-size: 15px;
+        line-height: 1.85;
+      }
+      .profile-text p { margin: 0 0 14px; }
+      .profile-text p:last-child { margin-bottom: 0; }
+      .profile-quote {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-size: 14px;
+        opacity: .75;
+        border-top: 1.5px dashed var(--ink);
+        padding-top: 14px;
+        margin-top: 14px !important;
+      }
+      .profile-quote svg { flex-shrink: 0; margin-top: 2px; }
+
+      /* 便利贴 */
+      .skills-note {
+        background: var(--green-soft);
+        border: 2.5px solid var(--ink);
+        border-radius: 14px;
+        box-shadow: 5px 5px 0 var(--ink);
+        padding: 22px 24px;
+        transform: rotate(-2deg);
+        transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s;
+      }
+      .skills-note:hover {
+        transform: rotate(-1deg) translate(-2px,-3px);
+        box-shadow: 8px 9px 0 var(--ink);
+      }
+      .skills-note-title {
+        font-family: "ZCOOL KuaiLe", sans-serif;
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      .skills-note-divider {
+        border-top: 1.5px dashed var(--ink);
+        margin: 8px 0 12px;
+        opacity: .5;
+      }
+      .skills-list {
+        list-style: none;
+        padding: 0; margin: 0;
+        font-family: "Space Mono", monospace;
+        font-size: 12.5px;
+        line-height: 2;
+      }
+      .skills-list li::before { content: "▸ "; opacity: .6; }
+      .skills-note-foot {
+        font-size: 10px;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        opacity: .5;
+        margin-top: 12px;
+        font-family: "Space Mono", monospace;
+      }
+
+      /* ── 造轮子动机书 ── */
+      .motive-section {
+        margin-bottom: 56px;
+        position: relative;
+        z-index: 2;
+      }
+      .motive-inner {
+        background: var(--blue-soft);
+        border: 2.5px solid var(--ink);
+        border-radius: 18px;
+        box-shadow: 5px 5px 0 var(--ink);
+        padding: 36px 40px;
+        transform: rotate(0.5deg);
+        position: relative;
+        overflow: hidden;
+      }
+      .motive-stamp-wrap {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .motive-stamp {
+        font-family: "Bagel Fat One", sans-serif;
+        font-size: 13px;
+        letter-spacing: .18em;
+        background: var(--blue);
+        color: #fff;
+        border: 2px solid var(--ink);
+        border-radius: 8px;
+        padding: 4px 12px;
+        box-shadow: 3px 3px 0 var(--ink);
+        transform: rotate(-3deg);
+        animation: wig 4.5s ease-in-out infinite;
+      }
+      .motive-quote {
+        margin: 0;
+        padding-left: 20px;
+        border-left: 3px dashed var(--ink);
+        font-size: 15px;
+        line-height: 1.9;
+      }
+      .motive-quote p { margin: 0 0 12px; }
+      .motive-quote p:last-child { margin-bottom: 0; }
+      .motive-aside {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        opacity: .7;
+        font-size: 14px;
+      }
+      .motive-aside small { font-size: 12px; }
+      .deco-fish {
+        position: absolute;
+        bottom: 18px; right: 24px;
+        width: 80px; height: 50px;
+        transform: rotate(-8deg);
+        opacity: .7;
+      }
+
+      /* ── 联系本鱼 ── */
+      .contact-section {
+        margin-bottom: 56px;
+        position: relative;
+        z-index: 2;
+      }
+      .contact-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 32px;
+        align-items: center;
+        background: var(--paper-deep);
+        border: 2.5px solid var(--ink);
+        border-radius: 20px;
+        box-shadow: 6px 6px 0 var(--ink);
+        padding: 28px 32px;
+        transform: rotate(-.4deg);
+      }
+      .contact-left {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .contact-intro {
+        font-size: 15px;
+        line-height: 1.8;
+        margin: 0;
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        opacity: .85;
+      }
+      .contact-chips {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        border: 2.5px solid var(--ink);
+        border-radius: 14px;
+        box-shadow: 4px 4px 0 var(--ink);
+        padding: 14px 18px;
+        min-width: 160px;
+        transition: transform .2s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
+      }
+      .chip:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+      .qq-chip { background: var(--pink-soft); transform: rotate(-.8deg); }
+      .group-chip { background: var(--blue-soft); transform: rotate(.6deg); }
+      .chip-label {
+        font-size: 10px;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        opacity: .6;
+        font-family: "Space Mono", monospace;
+        margin-bottom: 4px;
+      }
+      .chip-value {
+        font-family: "Bagel Fat One", sans-serif;
+        font-size: 28px;
+        line-height: 1.1;
+      }
+      .chip-hint {
+        font-size: 11px;
+        opacity: .55;
+        font-family: "Space Mono", monospace;
+        margin-top: 3px;
+      }
+
+      /* 右侧二维码区 */
+      .contact-right {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .qr-wrap {
+        position: relative;
+        background: var(--paper);
+        border: 2.5px solid var(--ink);
+        border-radius: 14px;
+        box-shadow: 5px 5px 0 var(--ink);
+        padding: 12px 12px 8px;
+        transform: rotate(1.5deg);
+      }
+      .qr-sticker {
+        position: absolute;
+        top: -11px; right: -8px;
+        font-family: "Bagel Fat One", sans-serif;
+        font-size: 10px;
+        letter-spacing: .08em;
+        background: var(--yellow);
+        border: 2px solid var(--ink);
+        border-radius: 6px;
+        padding: 2px 7px 3px;
+        box-shadow: 2px 2px 0 var(--ink);
+        transform: rotate(6deg);
+      }
+      .qr-img {
+        display: block;
+        width: 140px; height: 140px;
+        border-radius: 6px;
+        object-fit: cover;
+      }
+      .qr-label {
+        margin-top: 7px;
+        font-family: "Space Mono", monospace;
+        font-size: 9.5px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        opacity: .55;
+        text-align: center;
+      }
+      .qq-join-btn {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        font-family: "ZCOOL KuaiLe", sans-serif;
+        font-size: 16px;
+        background: var(--blue);
+        color: #fff;
+        border: 2.5px solid var(--ink);
+        border-radius: 999px;
+        padding: 9px 22px;
+        box-shadow: 4px 4px 0 var(--ink);
+        transition: transform .2s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
+        white-space: nowrap;
+      }
+      .qq-join-btn:hover {
+        transform: translate(-2px,-2px);
+        box-shadow: 6px 6px 0 var(--ink);
+      }
+
+      /* ── 动画 ── */
+      @keyframes wig {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+      }
+      @keyframes blink {
+        0%, 40%, 100% { opacity: 1; }
+        45%, 55% { opacity: .15; }
+      }
+
+      /* ── 响应式 ── */
+      @media (max-width: 1100px) {
+        .hero { grid-template-columns: 1fr; }
+        .hero-right { justify-content: flex-start; }
+        .profile-grid { grid-template-columns: 1fr; }
+        .skills-note { transform: rotate(0deg); }
+        .contact-grid { grid-template-columns: 1fr; transform: none; }
+        .contact-right { flex-direction: row; align-items: flex-start; flex-wrap: wrap; }
+        .qr-wrap { transform: none; }
+        .namecard { transform: none; }
+        .motive-inner { transform: none; }
+        .topbar { flex-wrap: wrap; gap: 10px; transform: none; }
+      }
+    </style>
+  </body>
+</html>

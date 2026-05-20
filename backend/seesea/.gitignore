@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+.seesea/
+downloads/
+eggs/
+.eggs/
+lib/
+.trae/
+.plan/
+.ruff_cache/
+storage/
+.mypy_cache/
+.iflow/
+.llm/
+lib64/
+vendor/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+seeenv/
+target/
+venv/
+ENV/
+.venv
+python
+
+# Rust
+target/
+Cargo.lock
+**/*.rs.bak
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Nost specific
+.nost/
+*.init.mono.lock
+*.env.monodata/
+
+# Data directory
+data/
+
+# Building directory
+building/
+
+# Test results and screenshots from get_xinhua_results.py
+xinhua_results_*.html
+xinhua_screenshot_*.png

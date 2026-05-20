@@ -1,0 +1,44 @@
+[project]
+name = "moyu-api"
+version = "0.1.0"
+description = "Moyu hot trends aggregator API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn[standard]>=0.35.0",
+  "httpx>=0.28.0",
+  "pydantic>=2.11.0",
+  "pydantic-settings>=2.10.0",
+  "aiosqlite>=0.21.0",
+  "apscheduler>=3.10.4",
+  "akshare>=1.17.86"
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.12.0",
+  "pyright>=1.1.403",
+  "pytest>=8.4.0",
+  "pytest-asyncio>=1.1.0"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["seesea"]
+force-exclude = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["app", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

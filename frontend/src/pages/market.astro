@@ -1,0 +1,53 @@
+﻿---
+import BaseLayout from "../components/BaseLayout.astro";
+import TopBar from "../components/TopBar.astro";
+import { fetchMarketUs } from "../lib/api";
+
+import "../styles/global.css";
+
+const data = await fetchMarketUs().catch(() => ({ items: [], stale: true, updatedAt: new Date().toISOString() }));
+---
+
+<BaseLayout title="摸鱼热榜 | 美股大盘" description="美股指数信息展示" canonical="https://example.com/market">
+  <main class="wrap">
+    <TopBar stale={data.stale} updatedAt={data.updatedAt} activePath="/market" />
+    <section class="market">
+      {data.items.map((m) => (
+        <a class="item" href={m.url} target="_blank" rel="noopener noreferrer">
+          <h2>{m.symbol}</h2>
+          <p>{m.name}</p>
+          <p>{m.price.toFixed(2)} / {m.changePct.toFixed(2)}%</p>
+          <small>{m.disclaimer}</small>
+        </a>
+      ))}
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .market {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .item {
+    border: 2.5px solid var(--ink);
+    border-radius: 18px;
+    box-shadow: 5px 5px 0 var(--ink);
+    background: var(--green-soft);
+    padding: 16px;
+    transform: rotate(1deg);
+  }
+
+  .item h2 {
+    margin: 0;
+    font-family: "Bagel Fat One", sans-serif;
+  }
+
+  @media (max-width: 768px) {
+    .market { grid-template-columns: 1fr; }
+    .item { transform: none; }
+  }
+</style>
