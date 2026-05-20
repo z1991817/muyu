@@ -5,7 +5,7 @@ WORKDIR /app
 ARG API_BASE=http://api:8000/api
 ENV API_BASE=$API_BASE
 
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.33.1 --activate
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
