@@ -90,7 +90,21 @@ async def test_market_us_happy_path(client: AsyncClient) -> None:
     assert payload["updatedAt"]
     assert len(payload["items"]) > 0
     assert payload["items"][0]["symbol"]
+    assert payload["items"][0]["url"].startswith(
+        "https://stock.finance.sina.com.cn/usstock/quotes/"
+    )
     assert payload["items"][0]["disclaimer"] == "仅供信息展示，不构成投资建议"
+
+
+@pytest.mark.asyncio
+async def test_online_happy_path(client: AsyncClient) -> None:
+    response = await client.get("/api/online")
+    assert response.status_code == 200
+
+    payload = response.json()
+    assert payload["stale"] is False
+    assert payload["updatedAt"]
+    assert payload["visitors"] == 12
 
 
 @pytest.mark.asyncio
@@ -120,6 +134,9 @@ async def test_akshare_client_fallback_returns_items() -> None:
 
     assert len(items) == 5
     assert items[0].symbol
+    assert all(
+        item.url.startswith("https://stock.finance.sina.com.cn/usstock/quotes/") for item in items
+    )
     assert items[0].disclaimer == "仅供信息展示，不构成投资建议"
 
 

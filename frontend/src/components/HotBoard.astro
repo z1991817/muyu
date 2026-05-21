@@ -34,12 +34,11 @@ const { title, platformClass, items } = Astro.props;
     border-radius: 18px;
     box-shadow: 5px 5px 0 var(--ink);
     padding: 16px;
-    transform: rotate(1deg);
     transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 
   .board:hover {
-    transform: translate(-2px, -3px) rotate(-0.4deg);
+    transform: translate(-2px, -3px);
     box-shadow: 8px 9px 0 var(--ink);
   }
 

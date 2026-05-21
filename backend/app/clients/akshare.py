@@ -16,15 +16,17 @@ class AkShareError(Exception):
         self.code = code
 
 
+_SINA_QUOTE_BASE = "https://stock.finance.sina.com.cn/usstock/quotes"
+
 _SINA_SYMBOLS: list[tuple[str, str, str, str]] = [
-    ("SPX", "S&P 500", "gb_$inx", "https://finance.yahoo.com/quote/%5EGSPC"),
-    ("DJI", "Dow Jones", "gb_$dji", "https://finance.yahoo.com/quote/%5EDJI"),
-    ("IXIC", "Nasdaq Composite", "gb_$ixic", "https://finance.yahoo.com/quote/%5EIXIC"),
-    ("NDX", "Nasdaq 100", "gb_$ndx", "https://finance.yahoo.com/quote/%5ENDX"),
+    ("SPX", "S&P 500", "gb_$inx", ".INX"),
+    ("DJI", "Dow Jones", "gb_$dji", ".DJI"),
+    ("IXIC", "Nasdaq Composite", "gb_$ixic", ".IXIC"),
+    ("NDX", "Nasdaq 100", "gb_$ndx", ".NDX"),
 ]
 
 _TENCENT_SYMBOLS: list[tuple[str, str, str, str]] = [
-    ("VIX", "VIX", "usVIX", "https://finance.yahoo.com/quote/%5EVIX"),
+    ("VIX", "VIX", "usVIX", ".VIX"),
 ]
 
 # 热门美股个股（新浪代码 gb_xxx）
@@ -123,20 +125,20 @@ def _fallback_indices(status: str) -> list[MarketIndex]:
             price=0.0,
             change=0.0,
             change_pct=0.0,
-            url=url,
+            url=_sina_quote_url(quote_symbol),
             market_status=status,
             trade_date=trade_date,
             updated_at=now,
             disclaimer=settings.market_disclaimer,
         )
-        for symbol, name, _, url in symbols
+        for symbol, name, _, quote_symbol in symbols
     ]
 
 
 def _parse_sina(text: str, status: str) -> list[MarketIndex]:
     now = datetime.now(UTC).isoformat()
     result: list[MarketIndex] = []
-    for symbol, name, sina_key, url in _SINA_SYMBOLS:
+    for symbol, name, sina_key, quote_symbol in _SINA_SYMBOLS:
         pattern = rf'hq_str_{re.escape(sina_key)}="([^"]+)"'
         m = re.search(pattern, text)
         if not m:
@@ -158,7 +160,7 @@ def _parse_sina(text: str, status: str) -> list[MarketIndex]:
                 price=round(price, 2),
                 change=round(change, 2),
                 change_pct=round(change_pct, 2),
-                url=url,
+                url=_sina_quote_url(quote_symbol),
                 market_status=status,
                 trade_date=trade_date,
                 updated_at=now,
@@ -171,7 +173,7 @@ def _parse_sina(text: str, status: str) -> list[MarketIndex]:
 def _parse_tencent(text: str, status: str) -> list[MarketIndex]:
     now = datetime.now(UTC).isoformat()
     result: list[MarketIndex] = []
-    for symbol, name, tx_key, url in _TENCENT_SYMBOLS:
+    for symbol, name, tx_key, quote_symbol in _TENCENT_SYMBOLS:
         pattern = rf'v_{re.escape(tx_key)}="([^"]+)"'
         m = re.search(pattern, text)
         if not m:
@@ -194,7 +196,7 @@ def _parse_tencent(text: str, status: str) -> list[MarketIndex]:
                 price=round(price, 2),
                 change=round(change, 2),
                 change_pct=round(change_pct, 2),
-                url=url,
+                url=_sina_quote_url(quote_symbol),
                 market_status=status,
                 trade_date=trade_date,
                 updated_at=now,
@@ -222,7 +224,7 @@ def _parse_sina_stocks(text: str, status: str) -> list[MarketStock]:
         except (ValueError, IndexError):
             continue
         trade_date = fields[_SINA_F_TIME][:10] if len(fields) > _SINA_F_TIME else ""
-        url = f"https://finance.yahoo.com/quote/{symbol}"
+        url = _sina_quote_url(symbol)
         result.append(
             MarketStock(
                 symbol=symbol,
@@ -246,3 +248,7 @@ def _market_status() -> str:
     if time(13, 30) <= now.time() <= time(20, 0):
         return "open"
     return "closed"
+
+
+def _sina_quote_url(symbol: str) -> str:
+    return f"{_SINA_QUOTE_BASE}/{symbol}.html"

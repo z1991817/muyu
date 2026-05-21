@@ -1,8 +1,13 @@
 ---
 import "../styles/global.css";
+import BaseLayout from "../components/BaseLayout.astro";
 import MainTopBar from "../components/MainTopBar.astro";
 import SiteFooter from "../components/SiteFooter.astro";
+import { absoluteUrl, SITE_NAME, SITE_URL } from "../lib/seo";
 
+const LAUNCH_DATE = new Date("2026-05-19T00:00:00+08:00");
+const ISSUE_NO = Math.floor((Date.now() - LAUNCH_DATE.getTime()) / 86_400_000) + 1;
+const siteHost = new URL(SITE_URL).hostname;
 const updatedAt = new Date().toISOString();
 const updatedDate = new Date(updatedAt).toLocaleDateString("zh-CN", {
   month: "2-digit",
@@ -13,33 +18,60 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
   minute: "2-digit",
   hour12: false,
 });
+
+const pageTitle = "关于摸鱼热榜 - 公开热榜链接聚合器说明";
+const pageDescription =
+  "了解摸鱼热榜的来处、数据边界与版权声明。本站只聚合公开热榜标题、热度、排名和原站链接，不抓取正文、不做摘要。";
+const aboutStructuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: pageTitle,
+    url: absoluteUrl("/about"),
+    description: pageDescription,
+    inLanguage: "zh-CN",
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "首页",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "关于摸鱼热榜",
+        item: absoluteUrl("/about"),
+      },
+    ],
+  },
+];
 ---
 
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>关于我 · 摸鱼热榜</title>
-    <meta name="description" content="摸鱼热榜站长自白——一个喜欢折腾小工具的前端仔" />
-    <link rel="canonical" href="/about" />
-    <link rel="stylesheet" href="/fonts/fonts-subset.css" />
-  </head>
-  <body>
-    <main>
-      <div class="wrap">
+<BaseLayout title={pageTitle} description={pageDescription} canonical="/about" structuredData={aboutStructuredData}>
+  <main>
+    <div class="wrap">
 
         <!-- 顶栏 -->
         <MainTopBar
-          issueLabel="摸鱼 ISSUE №001"
+          issueLabel={`摸鱼 ISSUE №${ISSUE_NO}`}
           navItems={[
-            { href: "/#boards-section", label: "热榜" },
+            { href: "/", label: "热榜" },
             { href: "/about", label: "关于我", active: true },
           ]}
         >
           <Fragment slot="crumbs">
             <span><b>{updatedDate}</b> 更新</span>
-            <span>站长档案 · ABOUT</span>
+            <span>站长档案 · 小站说明</span>
             <span>同步时间 <b>{updatedTime}</b></span>
           </Fragment>
         </MainTopBar>
@@ -48,21 +80,21 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         <section class="hero">
           <div class="hero-left">
             <div class="hero-title-wrap">
-              <h1 class="hero-title">本站站长</h1>
+              <h1 class="hero-title">关于本鱼</h1>
               <svg class="squiggle" viewBox="0 0 320 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M2 9 C22 2, 42 16, 62 9 S102 2, 122 9 S162 16, 182 9 S222 2, 242 9 S282 16, 302 9 S318 4, 318 9" stroke="var(--pink)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
               </svg>
             </div>
-            <p class="hero-lede">一个前端仔的工位自白</p>
-            <p class="hero-sub">把背挺直，假装在敲代码</p>
+            <p class="hero-lede">把每天都要打开的热榜，收进一个少点打扰的页面。</p>
+            <p class="hero-sub">上班要认真，摸鱼也要讲究一点秩序感。</p>
           </div>
           <div class="hero-right">
             <div class="tape tape-top"></div>
             <div class="namecard">
-              <div class="namecard-role">WEB 前端 · 折腾爱好者</div>
+              <div class="namecard-role">前端工程师 · 小工具爱好者</div>
               <div class="namecard-divider"></div>
               <div class="namecard-site">摸鱼热榜</div>
-              <div class="namecard-url">moyu.example.com</div>
+              <div class="namecard-url">{siteHost}</div>
               <div class="namecard-stamp">SINCE<br/>2026</div>
             </div>
           </div>
@@ -73,23 +105,22 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
           <div class="section-label">工位档案 · 第 001 号</div>
           <div class="profile-grid">
             <div class="profile-text">
-              <p>你好，我是这个网站的唯一员工。</p>
-              <p>白天写代码，晚上折腾小工具——这大概是我的人生主线任务。作为一名 WEB 前端开发者，我的日常是：把设计稿还原成像素级完美的页面，然后被产品经理改回去。</p>
-              <p>摸鱼热榜是我在某个周末灵光一闪做的东西。起因很简单：我想在一个地方看完所有热搜，不想开十几个 tab，也不想被算法推送一堆我不感兴趣的内容。</p>
-              
+              <p>白天写业务，晚上修自己的小玩具。摸鱼热榜不是宏大项目，只是我刷热榜时被来回切 App 折腾烦了，顺手把它做成一个能用的小站。</p>
+              <p>我喜欢这种小而具体的东西：打开就有答案，点一下就回到原站，不替你下结论，也不把注意力再卖一遍。</p>
+              <p>如果你也在做小工具，或者发现这里哪里不好用，欢迎来聊。好想法不用憋着，憋久了容易变成收藏夹里的灰。</p>
             </div>
             <div class="skills-note">
-              <div class="skills-note-title">技能树</div>
+              <div class="skills-note-title">随身工具箱</div>
               <div class="skills-note-divider"></div>
               <ul class="skills-list">
                 <li>HTML / CSS</li>
                 <li>JavaScript</li>
                 <li>TypeScript</li>
                 <li>Astro</li>
-                <li>折腾精神 ★★★★★</li>
-                <li>摸鱼哲学 ★★★★★</li>
+                <li>把想法做出来</li>
+                <li>把页面调顺眼</li>
               </ul>
-              <div class="skills-note-foot">以上技能均已点满</div>
+              <div class="skills-note-foot">不保证满级，但一直在升级</div>
             </div>
           </div>
         </section>
@@ -98,14 +129,14 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         <section class="motive-section">
           <div class="motive-inner">
             <div class="motive-stamp-wrap">
-              <div class="section-label">造轮子动机书</div>
+              <div class="section-label">为什么要做这个</div>
               <div class="motive-stamp">WHY</div>
             </div>
             <blockquote class="motive-quote">
-              <p>每次打开微博、知乎、B站，都要在五个 app 之间反复横跳。</p>
-              <p>我只是想知道今天发生了什么，不是要被推荐算法喂饱。</p>
-              <p>所以我做了这个网站：把公开热榜聚合在一起，点击直接跳原站，不转载、不摘要、不评论。就是一个干净的导航页，仅此而已。</p>
-              <p class="motive-aside">顺便加了美股大盘，因为我也想知道今天亏了多少。<br/><small>（纯信息展示，不构成投资建议，真的。）</small></p>
+              <p>刷热榜这件事，本来应该很轻：看一眼今天大家在聊什么，知道个大概，然后继续干自己的活。</p>
+              <p>但现实经常是，微博看完跳知乎，知乎看完跳 B 站，手指越划越熟练，人也越来越不清醒。</p>
+              <p>所以我把公开热榜整理到一起。这里不抓正文、不做摘要、不写观点，标题和链接都回到原站。它更像一张贴在桌角的小抄，提醒你今天外面热闹到哪一步了。</p>
+              <p class="motive-aside">美股大盘也放了一块，因为成年人总要关心一点账户情绪。<br/><small>仅供信息展示，不构成投资建议。</small></p>
             </blockquote>
             <!-- 小鱼装饰 -->
             <svg class="deco-fish" viewBox="0 0 80 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -123,17 +154,17 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
           <div class="section-label">联系本鱼</div>
           <div class="contact-grid">
             <div class="contact-left">
-              <p class="contact-intro">有 bug？有建议？觉得哪个平台应该加进来？欢迎来找我聊，我不咬人。</p>
+              <p class="contact-intro">看到错漏、想加平台、或者只是想交换一个小工具脑洞，都可以来找我。消息不一定秒回，但看到了会认真看。</p>
               <div class="contact-chips">
                 <div class="chip qq-chip">
-                  <div class="chip-label">QQ 号码</div>
+                  <div class="chip-label">站长 QQ</div>
                   <div class="chip-value">377584613</div>
-                  <div class="chip-hint">备注「摸鱼热榜」</div>
+                  <div class="chip-hint">加好友请备注「摸鱼热榜」</div>
                 </div>
                 <div class="chip group-chip">
-                  <div class="chip-label">QQ 群 · 快乐摸鱼</div>
+                  <div class="chip-label">摸鱼小群</div>
                   <div class="chip-value">897355748</div>
-                  <div class="chip-hint">扫码或点击加入</div>
+                  <div class="chip-hint">聊热榜、Bug 和奇怪点子</div>
                 </div>
               </div>
             </div>
@@ -144,16 +175,27 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
                 <div class="qr-label">快乐摸鱼 · 897355748</div>
               </div>
               <a href="https://qm.qq.com/q/it0wKyr5Di" class="qq-join-btn" target="_blank" rel="noopener noreferrer">
-                点击加入 QQ 群 →
+                进群一起摸鱼 →
               </a>
             </div>
           </div>
         </section>
 
+        <!-- 版权与数据声明 -->
+        <section class="legal-section">
+          <div class="section-label">版权与数据声明</div>
+          <div class="legal-card">
+            <span class="legal-sticker">NOTICE</span>
+            <p>摸鱼热榜展示的标题、热度、排名与链接，均来源于各平台公开可访问的信息。相关内容的版权归原始创作者或发布平台所有。</p>
+            <p>本站尊重知识产权，只提供信息索引与跳转服务，不复制、不存储、不转码源站正文、图片、视频或评论内容，也不会生成、篡改任何源站内容。</p>
+            <p>若你认为页面中的索引链接涉及侵权或不当展示，请通过本页联系方式联系我们。确认后，我们会尽快处理并移除相关入口。</p>
+          </div>
+        </section>
+
         <SiteFooter />
 
-      </div>
-    </main>
+    </div>
+  </main>
 
     <style>
       /* ── Hero ── */
@@ -162,6 +204,7 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         grid-template-columns: 1.4fr 1fr;
         gap: 40px;
         align-items: center;
+        margin-top: 28px;
         margin-bottom: 56px;
         position: relative;
         z-index: 2;
@@ -217,13 +260,12 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         border-radius: 18px;
         box-shadow: 8px 8px 0 var(--ink);
         padding: 28px 32px;
-        transform: rotate(2deg);
         position: relative;
         min-width: 240px;
         transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s;
       }
       .namecard:hover {
-        transform: rotate(1deg) translate(-2px,-3px);
+        transform: translate(-2px,-3px);
         box-shadow: 10px 11px 0 var(--ink);
       }
       .namecard-role {
@@ -291,7 +333,6 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         border-radius: 18px;
         box-shadow: 5px 5px 0 var(--ink);
         padding: 28px 32px;
-        transform: rotate(-0.6deg);
         font-size: 15px;
         line-height: 1.85;
       }
@@ -318,11 +359,10 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         border-radius: 14px;
         box-shadow: 5px 5px 0 var(--ink);
         padding: 22px 24px;
-        transform: rotate(-2deg);
         transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s;
       }
       .skills-note:hover {
-        transform: rotate(-1deg) translate(-2px,-3px);
+        transform: translate(-2px,-3px);
         box-shadow: 8px 9px 0 var(--ink);
       }
       .skills-note-title {
@@ -364,7 +404,6 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         border-radius: 18px;
         box-shadow: 5px 5px 0 var(--ink);
         padding: 36px 40px;
-        transform: rotate(0.5deg);
         position: relative;
         overflow: hidden;
       }
@@ -411,6 +450,44 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         opacity: .7;
       }
 
+      /* ── 版权与数据声明 ── */
+      .legal-section {
+        margin-bottom: 56px;
+        position: relative;
+        z-index: 2;
+      }
+      .legal-card {
+        background: var(--green-soft);
+        border: 2.5px solid var(--ink);
+        border-radius: 18px;
+        box-shadow: 5px 5px 0 var(--ink);
+        padding: 28px 32px;
+        position: relative;
+        transform: rotate(-0.4deg);
+        font-size: 14.5px;
+        line-height: 1.9;
+      }
+      .legal-card p {
+        margin: 0 0 12px;
+      }
+      .legal-card p:last-child {
+        margin-bottom: 0;
+      }
+      .legal-sticker {
+        position: absolute;
+        top: -13px;
+        right: 26px;
+        font-family: "Bagel Fat One", sans-serif;
+        font-size: 10px;
+        letter-spacing: .1em;
+        background: var(--yellow);
+        border: 2px solid var(--ink);
+        border-radius: 6px;
+        padding: 3px 8px;
+        box-shadow: 2px 2px 0 var(--ink);
+        transform: rotate(6deg);
+      }
+
       /* ── 联系本鱼 ── */
       .contact-section {
         margin-bottom: 56px;
@@ -427,7 +504,7 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         border-radius: 20px;
         box-shadow: 6px 6px 0 var(--ink);
         padding: 28px 32px;
-        transform: rotate(-.4deg);
+        transform: none;
       }
       .contact-left {
         display: flex;
@@ -453,22 +530,27 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         box-shadow: 4px 4px 0 var(--ink);
         padding: 14px 18px;
         min-width: 160px;
-        transition: transform .2s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
+        transition: box-shadow .2s, background-color .2s;
       }
-      .chip:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
-      .qq-chip { background: var(--pink-soft); transform: rotate(-.8deg); }
-      .group-chip { background: var(--blue-soft); transform: rotate(.6deg); }
+      .chip:hover { box-shadow: 6px 6px 0 var(--ink); }
+      .qq-chip { background: var(--pink-soft); }
+      .qq-chip:hover { background: var(--pink-soft); }
+      .group-chip { background: var(--blue-soft); }
+      .group-chip:hover { background: var(--blue-soft); }
       .chip-label {
         font-size: 10px;
         letter-spacing: .18em;
         text-transform: uppercase;
-        opacity: .6;
+        color: var(--ink);
+        opacity: .82;
         font-family: "Space Mono", monospace;
+        font-weight: 700;
         margin-bottom: 4px;
       }
       .chip-value {
-        font-family: "Bagel Fat One", sans-serif;
-        font-size: 28px;
+        font-family: "Space Mono", monospace;
+        font-size: 22px;
+        font-weight: 700;
         line-height: 1.1;
       }
       .chip-hint {
@@ -476,6 +558,11 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         opacity: .55;
         font-family: "Space Mono", monospace;
         margin-top: 3px;
+      }
+      .chip:hover .chip-label,
+      .chip:hover .chip-value,
+      .chip:hover .chip-hint {
+        font-family: "Space Mono", monospace;
       }
 
       /* 右侧二维码区 */
@@ -492,7 +579,6 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         border-radius: 14px;
         box-shadow: 5px 5px 0 var(--ink);
         padding: 12px 12px 8px;
-        transform: rotate(1.5deg);
       }
       .qr-sticker {
         position: absolute;
@@ -563,8 +649,8 @@ const updatedTime = new Date(updatedAt).toLocaleTimeString("zh-CN", {
         .qr-wrap { transform: none; }
         .namecard { transform: none; }
         .motive-inner { transform: none; }
+        .legal-card { transform: none; }
         .topbar { flex-wrap: wrap; gap: 10px; transform: none; }
       }
     </style>
-  </body>
-</html>
+</BaseLayout>

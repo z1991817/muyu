@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     market_closed_cache_ttl_seconds: int = 1800
 
     market_disclaimer: str = "仅供信息展示，不构成投资建议"
+    public_site_url: str = "https://moyu.example.com"
+
+    umami_api_base: str = "https://api.umami.is/v1"
+    umami_website_id: str = "5ed62d5d-3114-49cb-85b7-491c0cf277c1"
+    umami_api_key: str = ""
+    online_cache_ttl_seconds: int = 30
 
 
 @lru_cache

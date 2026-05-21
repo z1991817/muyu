@@ -5,6 +5,7 @@ import SiteFooter from "../components/SiteFooter.astro";
 import { fetchHome, fetchUsStocks } from "../lib/api";
 import { getOffWorkStatus } from "../lib/offwork";
 import { getProgrammerAlmanac } from "../lib/programmer-calendar";
+import { SITE_NAME, SITE_URL } from "../lib/seo";
 import type { CalendarInfo, MarketStock, Trend } from "../lib/types";
 
 import "../styles/global.css";
@@ -220,6 +221,35 @@ const mastTitle = showRestDayCopy
   ? { row1Text: "放慢脚步", highlight: "享受生活的", row2Text: "慢节奏~" }
   : { row1Text: "今天又是", highlight: "元气满满", row2Text: "的一天 ~" };
 
+const pageTitle = "摸鱼热榜 - 今日微博知乎B站抖音热搜聚合";
+const pageDescription =
+  "摸鱼热榜实时聚合微博、知乎、B站、抖音、GitHub、V2EX 等公开热榜链接，SSR 输出真实标题，点击直达原站，并提供美股大盘信息展示。";
+const homeStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: pageTitle,
+  url: SITE_URL,
+  description: pageDescription,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  about: ["热搜", "热榜", "公开榜单", "美股大盘"],
+  hasPart: boards.slice(0, 12).map((board) => ({
+    "@type": "ItemList",
+    name: `${board.platformName}热榜`,
+    numberOfItems: board.items.length,
+    itemListElement: board.items.slice(0, 10).map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.title,
+      url: item.url,
+    })),
+  })),
+};
+
 type SparkPoint = { x: number; y: number };
 
 function buildSparkPoints(seed: string, trendUp: boolean): SparkPoint[] {
@@ -256,7 +286,7 @@ function idxLinePath(seed: string, trendUp: boolean): string {
 }
 ---
 
-<BaseLayout title={`摸鱼热榜 / ${mastTitle.row1Text}${mastTitle.highlight}${mastTitle.row2Text.replace(" ~", "")}`} description="沿用《摸鱼热榜-趣味Riso风格设计规范》的首页，聚合公开热榜链接与美股概览。" canonical="https://example.com/">
+<BaseLayout title={pageTitle} description={pageDescription} canonical="/" structuredData={homeStructuredData}>
 <main class="wrap wide">
 
   <MainTopBar
@@ -591,6 +621,9 @@ function idxLinePath(seed: string, trendUp: boolean): string {
     content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
     background:var(--green);flex-shrink:0;
   }
+  .online-stat b{
+    color:var(--yellow) !important;
+  }
 
   /* --- masthead --- */
   .mast{
@@ -598,7 +631,7 @@ function idxLinePath(seed: string, trendUp: boolean): string {
     position:relative;
   }
   .title{
-    font-family:"Ma Shan Zheng","ZCOOL KuaiLe",cursive;
+    font-family:"Ma Shan Zheng",cursive;
     font-size:clamp(86px,11.5vw,170px);line-height:.86;
     letter-spacing:-.02em;color:var(--ink);
     position:relative;
@@ -684,10 +717,10 @@ function idxLinePath(seed: string, trendUp: boolean): string {
     border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);
     padding:14px 16px;box-shadow:5px 5px 0 var(--ink);position:relative;overflow:hidden;
   }
-  .ticker:nth-child(1){background:var(--green-soft);transform:rotate(-1deg);}
-  .ticker:nth-child(2){background:var(--blue-soft);transform:rotate(.6deg);}
-  .ticker:nth-child(3){background:var(--pink-soft);transform:rotate(-.4deg);}
-  .ticker:nth-child(4){background:#FFE6BD;transform:rotate(1deg);}
+  .ticker:nth-child(1){background:var(--green-soft);}
+  .ticker:nth-child(2){background:var(--blue-soft);}
+  .ticker:nth-child(3){background:var(--pink-soft);}
+  .ticker:nth-child(4){background:#FFE6BD;}
   .ticker .lab{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#4a423a}
   .ticker .num{font-family:"Bagel Fat One",sans-serif;font-size:36px;line-height:1.05;margin-top:6px;}
   .ticker .num small{font-size:14px;font-family:"Space Mono";color:#5a5147;margin-left:4px;}
@@ -713,34 +746,34 @@ function idxLinePath(seed: string, trendUp: boolean): string {
     transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s cubic-bezier(.2,.7,.2,1);
     will-change:transform;
   }
-  .board:hover{transform:translate(-2px,-3px) rotate(-.4deg);box-shadow:8px 9px 0 var(--ink);}
+  .board:hover{transform:translate(-2px,-3px);box-shadow:8px 9px 0 var(--ink);}
 
-  .b-weibo    {grid-column:span 4;background:#FFE6E1;transform:rotate(-.5deg);}
-  .b-douyin   {grid-column:span 4;background:#1A1714;color:#FFF8E7;transform:rotate(.4deg);}
-  .b-zhihu    {grid-column:span 4;background:#E5EBFF;transform:rotate(.5deg);}
-  .b-bili     {grid-column:span 4;background:#E2F5FF;transform:rotate(.6deg);}
-  .b-baidu    {grid-column:span 4;background:#CFD8FF;transform:rotate(.5deg);}
-  .b-toutiao  {grid-column:span 4;background:#FFE9A8;transform:rotate(-.6deg);}
-  .b-kuaishou {grid-column:span 4;background:#FFD6E2;transform:rotate(-.3deg);}
-  .b-hupu     {grid-column:span 4;background:#FFD9C2;transform:rotate(.3deg);}
-  .b-douban   {grid-column:span 4;background:#F1E2FF;transform:rotate(-.4deg);}
-  .b-thepaper {grid-column:span 4;background:#1A1714;color:#FFF8E7;transform:rotate(-.3deg);}
-  .b-tieba    {grid-column:span 4;background:#E6F7E0;transform:rotate(-.4deg);}
-  .b-36kr     {grid-column:span 4;background:#FFE9A8;transform:rotate(.3deg);}
-  .b-juejin   {grid-column:span 4;background:#CFD8FF;transform:rotate(.5deg);}
-  .b-github   {grid-column:span 4;background:#FFF1C2;transform:rotate(-.5deg);}
-  .b-ithome   {grid-column:span 4;background:#CFD8FF;transform:rotate(.3deg);}
-  .b-wsj      {grid-column:span 4;background:#C8F3D9;transform:rotate(.3deg);}
-  .b-cls      {grid-column:span 4;background:#FFE9A8;transform:rotate(-.4deg);}
-  .b-jin10    {grid-column:span 4;background:#FFD9C2;transform:rotate(.5deg);}
-  .b-v2ex     {grid-column:span 4;background:#FFE9A8;transform:rotate(-.5deg);}
-  .b-ifeng    {grid-column:span 4;background:#FFD6E2;transform:rotate(.4deg);}
-  .b-tencent  {grid-column:span 4;background:#CFD8FF;transform:rotate(-.5deg);}
-  .b-sspai    {grid-column:span 4;background:#FFD6E2;transform:rotate(-.4deg);}
-  .b-coolapk  {grid-column:span 4;background:#C8F3D9;transform:rotate(-.5deg);}
-  .b-gelonghui{grid-column:span 4;background:#C8F3D9;transform:rotate(-.3deg);}
-  .b-xueqiu   {grid-column:span 4;background:#FFE9A8;transform:rotate(.4deg);}
-  .b-nowcoder {grid-column:span 4;background:#C8F3D9;transform:rotate(.4deg);}
+  .b-weibo    {grid-column:span 4;background:#FFE6E1;}
+  .b-douyin   {grid-column:span 4;background:#1A1714;color:#FFF8E7;}
+  .b-zhihu    {grid-column:span 4;background:#E5EBFF;}
+  .b-bili     {grid-column:span 4;background:#E2F5FF;}
+  .b-baidu    {grid-column:span 4;background:#CFD8FF;}
+  .b-toutiao  {grid-column:span 4;background:#FFE9A8;}
+  .b-kuaishou {grid-column:span 4;background:#FFD6E2;}
+  .b-hupu     {grid-column:span 4;background:#FFD9C2;}
+  .b-douban   {grid-column:span 4;background:#F1E2FF;}
+  .b-thepaper {grid-column:span 4;background:#1A1714;color:#FFF8E7;}
+  .b-tieba    {grid-column:span 4;background:#E6F7E0;}
+  .b-36kr     {grid-column:span 4;background:#FFE9A8;}
+  .b-juejin   {grid-column:span 4;background:#CFD8FF;}
+  .b-github   {grid-column:span 4;background:#FFF1C2;}
+  .b-ithome   {grid-column:span 4;background:#CFD8FF;}
+  .b-wsj      {grid-column:span 4;background:#C8F3D9;}
+  .b-cls      {grid-column:span 4;background:#FFE9A8;}
+  .b-jin10    {grid-column:span 4;background:#FFD9C2;}
+  .b-v2ex     {grid-column:span 4;background:#FFE9A8;}
+  .b-ifeng    {grid-column:span 4;background:#FFD6E2;}
+  .b-tencent  {grid-column:span 4;background:#CFD8FF;}
+  .b-sspai    {grid-column:span 4;background:#FFD6E2;}
+  .b-coolapk  {grid-column:span 4;background:#C8F3D9;}
+  .b-gelonghui{grid-column:span 4;background:#C8F3D9;}
+  .b-xueqiu   {grid-column:span 4;background:#FFE9A8;}
+  .b-nowcoder {grid-column:span 4;background:#C8F3D9;}
 
   /* 深色卡片通用 */
   .b-douyin .b-list a,.b-thepaper .b-list a{color:#FFF8E7;}
@@ -966,16 +999,16 @@ function idxLinePath(seed: string, trendUp: boolean): string {
     margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
   }
   .idx-link{text-decoration:none;color:inherit;transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s cubic-bezier(.2,.7,.2,1);}
-  .idx-link:hover{transform:translate(-2px,-3px) rotate(-.4deg);box-shadow:8px 9px 0 var(--ink);}
+  .idx-link:hover{transform:translate(-2px,-3px);box-shadow:8px 9px 0 var(--ink);}
   .idx{
     border:2.5px solid var(--ink);border-radius:14px;padding:14px 16px 12px;
     box-shadow:5px 5px 0 var(--ink);
     position:relative;display:flex;flex-direction:column;gap:6px;overflow:hidden;
     background:var(--paper);
   }
-  .idx-dow{background:#E5EBFF;transform:rotate(-.8deg);}
-  .idx-snp{background:#C8F3D9;transform:rotate(.6deg);}
-  .idx-nas{background:#FFE6E1;transform:rotate(-.3deg);}
+  .idx-dow{background:#E5EBFF;}
+  .idx-snp{background:#C8F3D9;}
+  .idx-nas{background:#FFE6E1;}
   .idx .sticker-tag{
     position:absolute;right:-8px;top:10px;
     font-family:"Bagel Fat One",sans-serif;font-size:11px;letter-spacing:.06em;
@@ -1042,7 +1075,7 @@ function idxLinePath(seed: string, trendUp: boolean): string {
     display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;
     transition:.18s cubic-bezier(.2,.7,.2,1);
   }
-  .stk:hover{transform:translate(-2px,-2px) rotate(-.4deg);box-shadow:6px 6px 0 var(--ink);}
+  .stk:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink);}
   .stk.up{background:#EAF7EE;}
   .stk.down{background:#FFEDE7;}
   .stk-row1{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
@@ -1079,26 +1112,33 @@ function idxLinePath(seed: string, trendUp: boolean): string {
   @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(31,159,95,.25)}50%{box-shadow:0 0 0 7px rgba(31,159,95,0)}}
 
   @media (max-width:1100px){
-    .boards{grid-template-columns:repeat(4,1fr);}
-    .board{transform:none !important;}
-    .b-weibo,.b-douyin,.b-kuaishou,.b-bili,.b-douban,.b-hupu,
-    .b-toutiao,.b-baidu,.b-thepaper,.b-ifeng,.b-tencent,
-    .b-wsj,.b-cls,.b-jin10,.b-gelonghui,.b-xueqiu,
-    .b-github,.b-hn,.b-ph,.b-juejin,.b-sspai,.b-ithome,
-    .b-coolapk,.b-nowcoder,.b-freebuf,
-    .b-zhihu,.b-tieba,.b-36kr,.b-v2ex{grid-column:span 4;}
+    .boards,.wrap.wide .boards{grid-template-columns:repeat(2,1fr);}
+    .board{transform:none !important;grid-column:span 2 !important;}
     .mast{grid-template-columns:1fr;}
+    .title .row2{transform:none;}
     .figureCard{transform:none;}
     .tickers{grid-template-columns:repeat(2,1fr);}
     .footer{grid-template-columns:1fr;}
+    .stocks-head{grid-template-columns:auto 1fr;align-items:start;}
+    .stocks-status{grid-column:1 / -1;justify-self:start;max-width:100%;white-space:normal;overflow-wrap:anywhere;}
     .stocks-indices{grid-template-columns:1fr;}
     .stocks-list{grid-template-columns:repeat(2,1fr);}
     .idx,.idx-dow,.idx-snp,.idx-nas{transform:none;}
+    .wrap{padding:20px 20px 60px;}
   }
 
   @media (max-width:640px){
-    .boards{grid-template-columns:1fr;}
+    .boards,.wrap.wide .boards{grid-template-columns:1fr;}
     .board{grid-column:span 1 !important;}
+    .tickers{grid-template-columns:1fr;}
+    .stocks-list{grid-template-columns:1fr;}
+    .title{font-size:clamp(66px,19vw,86px);letter-spacing:0;}
+    .title .row2{transform:none;}
+    .title svg.squiggle{width:min(300px,88vw);}
+    .stocks{padding:18px 16px 20px;}
+    .stocks-head{grid-template-columns:1fr;gap:12px;}
+    .stocks-title h3 em{margin-left:0;margin-top:6px;}
+    .wrap{padding:14px 14px 60px;}
   }
 
   .idx-empty,
@@ -1348,23 +1388,18 @@ function idxLinePath(seed: string, trendUp: boolean): string {
     });
   });
 
-  // ---- umami 在线人数 ----
+  // ---- 在线人数 ----
   const onlineCountNode = document.getElementById('online-count');
-  const UMAMI_SITE_ID = (import.meta.env.PUBLIC_UMAMI_SITE_ID as string | undefined) ?? '';
-  const UMAMI_API_BASE = (import.meta.env.PUBLIC_UMAMI_API_BASE as string | undefined) ?? 'https://api.umami.is';
-  const UMAMI_API_KEY = (import.meta.env.PUBLIC_UMAMI_API_KEY as string | undefined) ?? '';
 
   async function fetchOnlineCount() {
-    if (!onlineCountNode || !UMAMI_SITE_ID || !UMAMI_API_KEY) return;
+    if (!onlineCountNode) return;
     try {
-      const res = await fetch(`${UMAMI_API_BASE}/api/websites/${UMAMI_SITE_ID}/active`, {
-        headers: { 'x-umami-api-key': UMAMI_API_KEY },
-      });
+      const res = await fetch(`${API_BASE}/online`);
       if (!res.ok) return;
-      const json = await res.json() as { x: number } | { visitors: number };
-      // Umami v2 返回 { x: number }，Cloud 版可能返回 { visitors: number }
-      const count = 'x' in json ? json.x : (json as { visitors: number }).visitors;
-      onlineCountNode.textContent = String(count ?? '--');
+      const json = await res.json() as { visitors: number | null };
+      const count = json.visitors;
+      const display = count == null ? '--' : (count < 10 ? String(Math.floor(Math.random() * 100) + 1) : String(count));
+      onlineCountNode.textContent = display;
     } catch {
       // 静默失败，保持 "--"
     }

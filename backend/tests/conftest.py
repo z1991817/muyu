@@ -67,7 +67,7 @@ class FakeAkShareClient:
                 price=5000.0,
                 change=10.2,
                 change_pct=0.2,
-                url="https://finance.yahoo.com/quote/%5EGSPC",
+                url="https://stock.finance.sina.com.cn/usstock/quotes/.INX.html",
                 market_status="closed",
                 trade_date="2026-05-19",
                 updated_at=now,
@@ -79,13 +79,21 @@ class FakeAkShareClient:
                 price=17000.0,
                 change=-20.3,
                 change_pct=-0.12,
-                url="https://finance.yahoo.com/quote/%5EIXIC",
+                url="https://stock.finance.sina.com.cn/usstock/quotes/.IXIC.html",
                 market_status="closed",
                 trade_date="2026-05-19",
                 updated_at=now,
                 disclaimer="仅供信息展示，不构成投资建议",
             ),
         ]
+
+
+class FakeUmamiClient:
+    async def fetch_active_visitors(self) -> int:
+        return 12
+
+    async def aclose(self) -> None:
+        return None
 
 
 @pytest_asyncio.fixture
@@ -106,6 +114,7 @@ async def test_app(tmp_path: Path) -> AsyncIterator[FastAPI]:
     app.state.cache = cache
     app.state.seesea_client = FakeSeeSeaClient()
     app.state.akshare_client = FakeAkShareClient()
+    app.state.umami_client = FakeUmamiClient()
     app.state.default_platforms = list(PLATFORMS.keys())
 
     yield app

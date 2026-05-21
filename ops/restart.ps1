@@ -45,6 +45,31 @@ function Stop-ListeningPortProcess {
   }
 }
 
+function Wait-HttpReady {
+  param(
+    [string]$Name,
+    [string]$Url,
+    [int]$TimeoutSeconds = 30,
+    [int]$IntervalSeconds = 1
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  $lastError = $null
+
+  while ((Get-Date) -lt $deadline) {
+    try {
+      $response = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec 5 -UseBasicParsing
+      Write-Host ("{0}: OK ({1})" -f $Name, $response.StatusCode)
+      return
+    } catch {
+      $lastError = $_.Exception.Message
+      Start-Sleep -Seconds $IntervalSeconds
+    }
+  }
+
+  Write-Warning ("{0}: Not ready after {1}s ({2})" -f $Name, $TimeoutSeconds, $lastError)
+}
+
 function Start-LocalMode {
   $backendDir = Join-Path $rootDir "backend"
   $frontendDir = Join-Path $rootDir "frontend"
@@ -91,18 +116,13 @@ function Start-LocalMode {
 
   Start-Sleep -Seconds 2
 
-  Write-Host "Local services launch attempted. Health check:"
+  Write-Host "Local services launch attempted. Waiting for health checks:"
   foreach ($item in @(
       @{ Name = "SeeSea"; Url = "http://127.0.0.1:8888/api/health" },
       @{ Name = "API"; Url = "http://127.0.0.1:8000/healthz" },
       @{ Name = "Frontend"; Url = "http://127.0.0.1:4321/" }
     )) {
-    try {
-      $response = Invoke-WebRequest -Uri $item.Url -Method Get -TimeoutSec 5 -UseBasicParsing
-      Write-Host ("{0}: OK ({1})" -f $item.Name, $response.StatusCode)
-    } catch {
-      Write-Warning ("{0}: Not ready ({1})" -f $item.Name, $_.Exception.Message)
-    }
+    Wait-HttpReady -Name $item.Name -Url $item.Url
   }
 }
 
