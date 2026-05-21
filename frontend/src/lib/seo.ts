@@ -1,6 +1,24 @@
 export const SITE_NAME = "摸鱼热榜";
+export const SITE_KEYWORD_LIST = [
+  "热搜平台",
+  "热搜聚合",
+  "热搜榜",
+  "新闻聚合阅读",
+  "摸鱼平台",
+  "摸鱼网站",
+  "今日热搜",
+  "实时热榜",
+  "微博热搜",
+  "知乎热榜",
+  "B站热搜",
+  "抖音热搜",
+  "GitHub Trending",
+  "V2EX 热门",
+] as const;
+
+export const SITE_KEYWORDS = SITE_KEYWORD_LIST.join(",");
 export const SITE_DESCRIPTION =
-  "摸鱼热榜聚合微博、知乎、B站、抖音、GitHub、V2EX 等公开热榜链接，提供干净的热搜导航与美股大盘信息展示。";
+  "摸鱼热榜是一个热搜平台，聚合微博、知乎、B站、抖音、贴吧、V2EX、GitHub 等热门榜单，提供一站式热搜聚合与新闻聚合阅读入口。";
 
 export const SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? "https://moyu.example.com")
   .replace(/\/+$/, "");
