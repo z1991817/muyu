@@ -48,6 +48,7 @@ services:
     image: moyu-frontend:latest
     environment:
       API_BASE: http://api:8000/api
+      TZ: Asia/Shanghai  
     ports:
       - "${MOYU_FRONTEND_PORT:-127.0.0.1:14321}:4321"
     depends_on:
