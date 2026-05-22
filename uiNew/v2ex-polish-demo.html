@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>V2EX Polish 风格热搜聚合 Demo</title>
+    <style>
+      :root {
+        --main-50: #f7f9fb;
+        --main-100: #f1f5f9;
+        --main-200: #e2e8f0;
+        --main-300: #cbd5e1;
+        --main-400: #94a3b8;
+        --main-500: #64748b;
+        --main-600: #475569;
+        --main-700: #334155;
+        --main-800: #1e293b;
+        --accent-50: #ecfdf5;
+        --accent-100: #d1fae5;
+        --accent-500: #10b981;
+        --accent-600: #059669;
+        --orange-50: #fff7ed;
+        --orange-400: #fb923c;
+        --red-50: #fef2f2;
+        --red-500: #ef4444;
+        --bg: #f2f3f5;
+        --content: #ffffff;
+        --widget: rgb(255 255 255 / 72%);
+        --hover: #f1f5f9;
+        --text: #1e293b;
+        --secondary: #475569;
+        --tertiary: #64748b;
+        --quaternary: #94a3b8;
+        --border: #e2e8f0;
+        --border-strong: #cbd5e1;
+        --radius: 10px;
+        --shadow: 0 3px 5px 0 rgb(0 0 0 / 4%);
+        --widget-shadow: 0 9px 24px -3px rgb(0 0 0 / 6%), 0 4px 8px -1px rgb(0 0 0 / 12%);
+        --nav-bg: rgb(242 243 245 / 88%);
+        --nav-border: rgb(226 232 240 / 80%);
+        --notice-border: rgb(226 232 240 / 90%);
+        --box-head-bg: linear-gradient(180deg, rgb(247 249 251 / 78%), rgb(255 255 255 / 92%));
+        --kbd-bg: rgb(255 255 255 / 65%);
+      }
+
+      [data-theme="dark"] {
+        --main-50: #111827;
+        --main-100: #1f2937;
+        --main-200: #273449;
+        --main-300: #334155;
+        --main-400: #64748b;
+        --main-500: #94a3b8;
+        --main-600: #cbd5e1;
+        --main-700: #e2e8f0;
+        --main-800: #f8fafc;
+        --accent-50: rgb(16 185 129 / 12%);
+        --accent-100: rgb(16 185 129 / 18%);
+        --accent-500: #34d399;
+        --accent-600: #6ee7b7;
+        --orange-50: rgb(251 146 60 / 12%);
+        --orange-400: #fdba74;
+        --red-50: rgb(248 113 113 / 12%);
+        --red-500: #f87171;
+        --bg: #0b1017;
+        --content: #121a25;
+        --widget: rgb(18 26 37 / 78%);
+        --hover: #182231;
+        --text: #e5edf6;
+        --secondary: #cbd5e1;
+        --tertiary: #94a3b8;
+        --quaternary: #64748b;
+        --border: #223047;
+        --border-strong: #334155;
+        --shadow: 0 3px 8px 0 rgb(0 0 0 / 18%);
+        --widget-shadow: 0 18px 34px -12px rgb(0 0 0 / 52%);
+        --nav-bg: rgb(11 16 23 / 88%);
+        --nav-border: rgb(34 48 71 / 90%);
+        --notice-border: rgb(34 48 71 / 90%);
+        --box-head-bg: linear-gradient(180deg, rgb(17 24 39 / 86%), rgb(18 26 37 / 96%));
+        --kbd-bg: rgb(17 24 39 / 76%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--bg);
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        transition: background-color 160ms ease, color 160ms ease;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid var(--nav-border);
+        background: var(--nav-bg);
+        backdrop-filter: blur(16px);
+      }
+
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        max-width: 1180px;
+        height: 55px;
+        margin: 0 auto;
+        padding: 0 18px;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--main-800);
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .logo-mark {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--content);
+        box-shadow: var(--shadow);
+        color: var(--accent-600);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .search {
+        position: relative;
+        flex: 1;
+        max-width: 420px;
+      }
+
+      .search input {
+        width: 100%;
+        height: 34px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: var(--main-100);
+        color: var(--text);
+        outline: none;
+        padding: 0 70px 0 34px;
+        transition: background-color 140ms ease, border-color 140ms ease;
+      }
+
+      .search input:focus {
+        border-color: var(--main-300);
+        background: var(--main-200);
+      }
+
+      .search svg {
+        position: absolute;
+        top: 50%;
+        left: 11px;
+        width: 15px;
+        height: 15px;
+        color: var(--main-400);
+        transform: translateY(-50%);
+      }
+
+      .kbd {
+        position: absolute;
+        top: 50%;
+        right: 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--kbd-bg);
+        color: var(--main-500);
+        font-size: 11px;
+        line-height: 1;
+        padding: 4px 6px;
+        transform: translateY(-50%);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+      }
+
+      .nav-links a,
+      .nav-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--main-500);
+        padding: 0 10px;
+        text-decoration: none;
+        transition: background-color 140ms ease, color 140ms ease;
+        white-space: nowrap;
+      }
+
+      .nav-links a:hover,
+      .nav-links a.active,
+      .nav-icon:hover {
+        background: var(--main-100);
+        color: var(--main-700);
+      }
+
+      .nav-icon svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .theme-toggle {
+        position: relative;
+      }
+
+      .theme-toggle .sun,
+      .theme-toggle .moon {
+        position: absolute;
+        transition: opacity 140ms ease, transform 140ms ease;
+      }
+
+      .theme-toggle .moon {
+        opacity: 0;
+        transform: scale(0.72);
+      }
+
+      [data-theme="dark"] .theme-toggle .sun {
+        opacity: 0;
+        transform: scale(0.72);
+      }
+
+      [data-theme="dark"] .theme-toggle .moon {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 20px 18px 48px;
+      }
+
+      .notice {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        border: 1px solid var(--notice-border);
+        border-radius: var(--radius);
+        background: var(--widget);
+        box-shadow: var(--shadow);
+        padding: 12px 14px;
+      }
+
+      .notice-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        color: var(--secondary);
+      }
+
+      .notice-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--accent-500);
+        box-shadow: 0 0 0 4px var(--accent-50);
+      }
+
+      .notice strong {
+        color: var(--text);
+        font-weight: 650;
+      }
+
+      .notice-meta {
+        color: var(--tertiary);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 292px;
+        gap: 25px;
+        align-items: start;
+      }
+
+      .content-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .box {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--content);
+        box-shadow: var(--shadow);
+      }
+
+      .box[data-platform="weibo"] {
+        --platform-color: #d94b3d;
+        --platform-soft: rgb(217 75 61 / 10%);
+      }
+
+      .box[data-platform="zhihu"] {
+        --platform-color: #2f6feb;
+        --platform-soft: rgb(47 111 235 / 10%);
+      }
+
+      .box[data-platform="bilibili"] {
+        --platform-color: #4b9fc7;
+        --platform-soft: rgb(75 159 199 / 12%);
+      }
+
+      .box[data-platform="juejin"] {
+        --platform-color: #1e80ff;
+        --platform-soft: rgb(30 128 255 / 10%);
+      }
+
+      .box-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 58px;
+        border-bottom: 1px solid var(--border);
+        background: var(--box-head-bg);
+        box-shadow: inset 3px 0 0 var(--platform-color, var(--accent-500));
+        padding: 11px 14px 11px 16px;
+      }
+
+      .box-title {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .platform-logo {
+        display: grid;
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--platform-soft, var(--accent-50));
+        color: var(--platform-color, var(--accent-600));
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .platform-logo img {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+
+      .platform-info {
+        min-width: 0;
+      }
+
+      .box-title h2 {
+        overflow: hidden;
+        margin: 0;
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .platform-desc {
+        overflow: hidden;
+        margin-top: 2px;
+        color: var(--tertiary);
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .head-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--tertiary);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .platform-count {
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        border-radius: 999px;
+        background: var(--platform-soft, var(--main-100));
+        color: var(--platform-color, var(--main-600));
+        font-size: 12px;
+        font-weight: 650;
+        padding: 0 9px;
+      }
+
+      .small-icon {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 0;
+        border-radius: 8px;
+        background: var(--main-100);
+        color: var(--main-500);
+        transition: background-color 140ms ease, color 140ms ease;
+      }
+
+      .small-icon:hover {
+        background: var(--main-200);
+        color: var(--main-700);
+      }
+
+      .box[data-platform] .small-icon:hover {
+        background: var(--platform-soft, var(--main-200));
+        color: var(--platform-color, var(--main-700));
+      }
+
+      .small-icon svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .topic-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .topic-cell {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 46px;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 14px;
+        transition: background-color 140ms ease;
+      }
+
+      .topic-cell:last-child {
+        border-bottom: 0;
+      }
+
+      .topic-cell:hover {
+        background: var(--main-50);
+      }
+
+      .rank {
+        color: var(--quaternary);
+        font-size: 12px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .rank.hot {
+        color: var(--accent-600);
+      }
+
+      .topic-main {
+        min-width: 0;
+      }
+
+      .topic-title {
+        overflow: hidden;
+        color: var(--main-800);
+        font-size: 14px;
+        font-weight: 560;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .topic-title:visited {
+        color: var(--main-400);
+      }
+
+      .topic-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 3px;
+        color: var(--tertiary);
+        font-size: 12px;
+      }
+
+      .node {
+        display: inline-flex;
+        align-items: center;
+        height: 18px;
+        border-radius: 6px;
+        background: var(--main-100);
+        color: var(--main-500);
+        padding: 0 6px;
+      }
+
+      .heat {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        height: 24px;
+        border-radius: 8px;
+        background: var(--main-100);
+        color: var(--main-500);
+        font-size: 12px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        padding: 0 8px;
+      }
+
+      .box-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid var(--border);
+        background: var(--main-50);
+        color: var(--tertiary);
+        font-size: 12px;
+        padding: 9px 14px;
+      }
+
+      .box-foot strong {
+        color: var(--secondary);
+        font-weight: 600;
+      }
+
+      .side {
+        display: grid;
+        gap: 14px;
+      }
+
+      .widget {
+        border: 1px solid var(--notice-border);
+        border-radius: var(--radius);
+        background: var(--widget);
+        box-shadow: var(--widget-shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .widget-head {
+        border-bottom: 1px solid var(--border);
+        color: var(--main-700);
+        font-size: 13px;
+        font-weight: 700;
+        padding: 10px 13px;
+      }
+
+      .widget-body {
+        padding: 12px 13px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .stat {
+        border-radius: 8px;
+        background: var(--main-50);
+        padding: 10px;
+      }
+
+      .stat span {
+        color: var(--tertiary);
+        font-size: 12px;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 2px;
+        color: var(--main-800);
+        font-size: 17px;
+        font-weight: 750;
+      }
+
+      .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag-cloud a {
+        border-radius: 7px;
+        background: var(--main-100);
+        color: var(--main-600);
+        font-size: 12px;
+        padding: 5px 8px;
+        text-decoration: none;
+      }
+
+      .tag-cloud a.hot {
+        background: var(--accent-50);
+        color: var(--accent-600);
+      }
+
+      .micro-list {
+        display: grid;
+        gap: 9px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .micro-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--secondary);
+        font-size: 13px;
+      }
+
+      .micro-list span:last-child {
+        color: var(--tertiary);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .side {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 680px) {
+        .nav-inner {
+          height: auto;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 12px 14px;
+        }
+
+        .logo {
+          width: calc(100% - 42px);
+        }
+
+        .search {
+          order: 3;
+          flex-basis: 100%;
+          max-width: none;
+        }
+
+        .nav-links a {
+          display: none;
+        }
+
+        .wrap {
+          padding: 14px 12px 36px;
+        }
+
+        .notice {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .layout,
+        .side {
+          gap: 12px;
+          grid-template-columns: 1fr;
+        }
+
+        .box-head {
+          align-items: center;
+          flex-direction: row;
+          gap: 10px;
+        }
+
+        .head-actions {
+          width: auto;
+          justify-content: flex-end;
+        }
+
+        .platform-desc {
+          max-width: 44vw;
+        }
+
+        .topic-cell {
+          grid-template-columns: 28px minmax(0, 1fr) auto;
+          padding: 10px 12px;
+        }
+
+        .topic-title {
+          max-width: 100%;
+        }
+
+        .topic-meta {
+          display: none;
+        }
+
+        .heat {
+          min-width: 38px;
+          padding: 0 7px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="nav-inner">
+        <a class="logo" href="#">
+          <span class="logo-mark">V</span>
+          <span>摸鱼热榜</span>
+        </a>
+
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <input type="search" placeholder="搜索平台、节点或热点标题" />
+          <span class="kbd">/</span>
+        </label>
+
+        <nav class="nav-links" aria-label="主导航">
+          <a class="active" href="#">首页</a>
+          <a href="#">节点</a>
+          <a href="#">收藏</a>
+          <a href="#">设置</a>
+          <button class="nav-icon theme-toggle" type="button" aria-label="切换暗黑主题" aria-pressed="false">
+            <svg class="sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m14.36-6.36 1.42-1.42M4.22 19.78l1.42-1.42m12.72 0 1.42 1.42M4.22 4.22l1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <svg class="moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 7 7 0 1 0 20.5 15.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button class="nav-icon" type="button" aria-label="刷新全部">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="notice" aria-label="今日状态">
+        <div class="notice-title">
+          <span class="notice-dot"></span>
+          <span><strong>全平台热榜</strong> 已聚合 12 个来源，适合像刷 V2EX 主题一样扫一遍今天发生了什么。</span>
+        </div>
+        <div class="notice-meta">最后同步 14:30</div>
+      </section>
+
+      <div class="layout">
+        <section class="content-stack" aria-label="平台热搜列表">
+          <article class="box" data-platform="weibo">
+            <header class="box-head">
+              <div class="box-title">
+                <span class="platform-logo"><img src="https://cdn.simpleicons.org/sinaweibo/E6162D" alt="" aria-hidden="true" /></span>
+                <div class="platform-info">
+                  <h2>微博热搜</h2>
+                  <div class="platform-desc">全网公共话题、娱乐和社会热点</div>
+                </div>
+              </div>
+              <div class="head-actions">
+                <span class="platform-count">50 条</span>
+                <button class="small-icon" type="button" aria-label="刷新微博热搜">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </header>
+            <ol class="topic-list">
+              <li class="topic-cell"><span class="rank hot">01</span><div class="topic-main"><div class="topic-title">某互联网公司调整远程办公政策，引发职场讨论</div><div class="topic-meta"><span class="node">职场</span><span>8 分钟前</span></div></div><span class="heat">328w</span></li>
+              <li class="topic-cell"><span class="rank hot">02</span><div class="topic-main"><div class="topic-title">年轻人开始用低成本周末替代长途旅行</div><div class="topic-meta"><span class="node">生活</span><span>12 分钟前</span></div></div><span class="heat">294w</span></li>
+              <li class="topic-cell"><span class="rank hot">03</span><div class="topic-main"><div class="topic-title">今年夏天第一批通勤防晒装备</div><div class="topic-meta"><span class="node">消费</span><span>18 分钟前</span></div></div><span class="heat">221w</span></li>
+              <li class="topic-cell"><span class="rank">04</span><div class="topic-main"><div class="topic-title">下班后不回消息算不算失联</div><div class="topic-meta"><span class="node">讨论</span><span>24 分钟前</span></div></div><span class="heat">186w</span></li>
+              <li class="topic-cell"><span class="rank">05</span><div class="topic-main"><div class="topic-title">城市夜跑路线收藏榜更新</div><div class="topic-meta"><span class="node">运动</span><span>31 分钟前</span></div></div><span class="heat">151w</span></li>
+            </ol>
+            <footer class="box-foot"><span>更新时间</span><strong>14:28</strong></footer>
+          </article>
+
+          <article class="box" data-platform="zhihu">
+            <header class="box-head">
+              <div class="box-title">
+                <span class="platform-logo"><img src="https://cdn.simpleicons.org/zhihu/0084FF" alt="" aria-hidden="true" /></span>
+                <div class="platform-info">
+                  <h2>知乎热榜</h2>
+                  <div class="platform-desc">深度讨论、问答和观点趋势</div>
+                </div>
+              </div>
+              <div class="head-actions">
+                <span class="platform-count">50 条</span>
+                <button class="small-icon" type="button" aria-label="刷新知乎热榜">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </header>
+            <ol class="topic-list">
+              <li class="topic-cell"><span class="rank hot">01</span><div class="topic-main"><div class="topic-title">为什么越来越多人选择低刺激信息源</div><div class="topic-meta"><span class="node">社会</span><span>4 分钟前</span></div></div><span class="heat">961w</span></li>
+              <li class="topic-cell"><span class="rank hot">02</span><div class="topic-main"><div class="topic-title">程序员如何判断一个工具是否值得长期使用</div><div class="topic-meta"><span class="node">技术</span><span>9 分钟前</span></div></div><span class="heat">742w</span></li>
+              <li class="topic-cell"><span class="rank hot">03</span><div class="topic-main"><div class="topic-title">普通人应该如何做每日信息整理</div><div class="topic-meta"><span class="node">效率</span><span>16 分钟前</span></div></div><span class="heat">580w</span></li>
+              <li class="topic-cell"><span class="rank">04</span><div class="topic-main"><div class="topic-title">远程办公会降低团队沟通效率吗</div><div class="topic-meta"><span class="node">职场</span><span>20 分钟前</span></div></div><span class="heat">436w</span></li>
+              <li class="topic-cell"><span class="rank">05</span><div class="topic-main"><div class="topic-title">怎样避免被碎片化热点牵着走</div><div class="topic-meta"><span class="node">生活</span><span>32 分钟前</span></div></div><span class="heat">318w</span></li>
+            </ol>
+            <footer class="box-foot"><span>更新时间</span><strong>14:26</strong></footer>
+          </article>
+
+          <article class="box" data-platform="bilibili">
+            <header class="box-head">
+              <div class="box-title">
+                <span class="platform-logo"><img src="https://cdn.simpleicons.org/bilibili/00A1D6" alt="" aria-hidden="true" /></span>
+                <div class="platform-info">
+                  <h2>B 站热榜</h2>
+                  <div class="platform-desc">视频内容、知识区和年轻人关注</div>
+                </div>
+              </div>
+              <div class="head-actions">
+                <span class="platform-count">30 条</span>
+                <button class="small-icon" type="button" aria-label="刷新 B 站热榜">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </header>
+            <ol class="topic-list">
+              <li class="topic-cell"><span class="rank hot">01</span><div class="topic-main"><div class="topic-title">效率工具年度横评：哪些真的省时间</div><div class="topic-meta"><span class="node">知识</span><span>5 分钟前</span></div></div><span class="heat">88w</span></li>
+              <li class="topic-cell"><span class="rank hot">02</span><div class="topic-main"><div class="topic-title">一个人做饭如何控制成本和时间</div><div class="topic-meta"><span class="node">生活</span><span>11 分钟前</span></div></div><span class="heat">75w</span></li>
+              <li class="topic-cell"><span class="rank hot">03</span><div class="topic-main"><div class="topic-title">AI 写代码到底适合什么场景</div><div class="topic-meta"><span class="node">科技</span><span>17 分钟前</span></div></div><span class="heat">69w</span></li>
+              <li class="topic-cell"><span class="rank">04</span><div class="topic-main"><div class="topic-title">通勤路上的 20 分钟学习法</div><div class="topic-meta"><span class="node">学习</span><span>26 分钟前</span></div></div><span class="heat">54w</span></li>
+              <li class="topic-cell"><span class="rank">05</span><div class="topic-main"><div class="topic-title">旧电脑改造成家庭服务器</div><div class="topic-meta"><span class="node">数码</span><span>39 分钟前</span></div></div><span class="heat">42w</span></li>
+            </ol>
+            <footer class="box-foot"><span>更新时间</span><strong>14:25</strong></footer>
+          </article>
+
+          <article class="box" data-platform="juejin">
+            <header class="box-head">
+              <div class="box-title">
+                <span class="platform-logo"><img src="https://cdn.simpleicons.org/juejin/1E80FF" alt="" aria-hidden="true" /></span>
+                <div class="platform-info">
+                  <h2>掘金热榜</h2>
+                  <div class="platform-desc">开发者文章、前端后端与工程化</div>
+                </div>
+              </div>
+              <div class="head-actions">
+                <span class="platform-count">20 条</span>
+                <button class="small-icon" type="button" aria-label="刷新掘金热榜">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </header>
+            <ol class="topic-list">
+              <li class="topic-cell"><span class="rank hot">01</span><div class="topic-main"><div class="topic-title">前端框架性能对比更新：SSR 与 RSC</div><div class="topic-meta"><span class="node">前端</span><span>6 分钟前</span></div></div><span class="heat">8.2w</span></li>
+              <li class="topic-cell"><span class="rank hot">02</span><div class="topic-main"><div class="topic-title">如何设计一个低成本的热搜抓取系统</div><div class="topic-meta"><span class="node">后端</span><span>13 分钟前</span></div></div><span class="heat">7.4w</span></li>
+              <li class="topic-cell"><span class="rank hot">03</span><div class="topic-main"><div class="topic-title">React 组件库的 design token 实践</div><div class="topic-meta"><span class="node">工程化</span><span>19 分钟前</span></div></div><span class="heat">6.8w</span></li>
+              <li class="topic-cell"><span class="rank">04</span><div class="topic-main"><div class="topic-title">用 Playwright 做首页视觉回归测试</div><div class="topic-meta"><span class="node">测试</span><span>27 分钟前</span></div></div><span class="heat">5.5w</span></li>
+              <li class="topic-cell"><span class="rank">05</span><div class="topic-main"><div class="topic-title">Node 任务队列如何优雅限流</div><div class="topic-meta"><span class="node">Node</span><span>41 分钟前</span></div></div><span class="heat">4.9w</span></li>
+            </ol>
+            <footer class="box-foot"><span>更新时间</span><strong>14:24</strong></footer>
+          </article>
+        </section>
+
+        <aside class="side" aria-label="侧边栏">
+          <section class="widget">
+            <div class="widget-head">站点概览</div>
+            <div class="widget-body">
+              <div class="stats">
+                <div class="stat"><span>平台</span><strong>12</strong></div>
+                <div class="stat"><span>热点</span><strong>248</strong></div>
+                <div class="stat"><span>收藏</span><strong>18</strong></div>
+                <div class="stat"><span>刷新</span><strong>5m</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="widget">
+            <div class="widget-head">热门节点</div>
+            <div class="widget-body">
+              <div class="tag-cloud">
+                <a class="hot" href="#">AI</a>
+                <a href="#">职场</a>
+                <a href="#">前端</a>
+                <a href="#">效率</a>
+                <a href="#">开源</a>
+                <a href="#">生活</a>
+                <a href="#">远程办公</a>
+                <a href="#">通勤</a>
+              </div>
+            </div>
+          </section>
+
+          <section class="widget">
+            <div class="widget-head">更新队列</div>
+            <div class="widget-body">
+              <ul class="micro-list">
+                <li><span>微博热搜</span><span>14:28</span></li>
+                <li><span>知乎热榜</span><span>14:26</span></li>
+                <li><span>B 站热榜</span><span>14:25</span></li>
+                <li><span>掘金热榜</span><span>14:24</span></li>
+                <li><span>GitHub</span><span>14:18</span></li>
+              </ul>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const themeToggle = document.querySelector(".theme-toggle");
+      const savedTheme = localStorage.getItem("v2ex-polish-theme") || "light";
+
+      function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme === "dark" ? "dark" : "";
+        themeToggle.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+        localStorage.setItem("v2ex-polish-theme", theme);
+      }
+
+      applyTheme(savedTheme);
+      themeToggle.addEventListener("click", () => {
+        const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(nextTheme);
+      });
+    </script>
+  </body>
+</html>

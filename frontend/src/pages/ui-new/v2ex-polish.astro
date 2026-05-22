@@ -1,0 +1,175 @@
+---
+import { fetchHome } from "../../lib/api";
+import { buildUiNewBoards, formatUiNewTime } from "../../lib/ui-new";
+import type { HomeResponse } from "../../lib/types";
+
+const fallbackHome: HomeResponse = {
+  trends: [],
+  markets: [],
+  sources: [],
+  calendar: {
+    date: new Date().toISOString().slice(0, 10),
+    isRestDay: false,
+    kind: "workday",
+    name: null,
+  },
+  stale: true,
+  updatedAt: new Date().toISOString(),
+};
+
+const data = await fetchHome().catch(() => fallbackHome);
+const boards = buildUiNewBoards(data);
+const updatedAt = formatUiNewTime(data.updatedAt);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>V2EX Polish 风格热搜聚合 Demo</title>
+    <link rel="stylesheet" href="/ui-new/v2ex-polish.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <div class="nav-inner">
+        <a class="logo" href="#">
+          <span class="logo-mark">V</span>
+          <span>摸鱼热榜</span>
+        </a>
+
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <input type="search" placeholder="搜索平台、节点或热点标题" />
+          <span class="kbd">/</span>
+        </label>
+
+        <nav class="nav-links" aria-label="主导航">
+          <a class="active" href="#">首页</a>
+          <a href="#">节点</a>
+          <a href="#">收藏</a>
+          <a href="#">设置</a>
+          <button class="nav-icon theme-toggle" type="button" aria-label="切换暗黑主题" aria-pressed="false">
+            <svg class="sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m14.36-6.36 1.42-1.42M4.22 19.78l1.42-1.42m12.72 0 1.42 1.42M4.22 4.22l1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <svg class="moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 7 7 0 1 0 20.5 15.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button class="nav-icon" type="button" aria-label="刷新全部">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="notice" aria-label="今日状态">
+        <div class="notice-title">
+          <span class="notice-dot"></span>
+          <span><strong>全平台热榜</strong> 已聚合 {boards.length} 个来源，适合像刷 V2EX 主题一样扫一遍今天发生了什么。</span>
+        </div>
+        <div class="notice-meta">最后同步 {updatedAt}</div>
+      </section>
+
+      <div class="layout">
+        <section class="content-stack" aria-label="平台热搜列表">
+          {boards.map((board) => (
+            <article
+              class="box"
+              data-platform={board.platform}
+              style={`--platform-color:${board.themeColor};--platform-soft:color-mix(in srgb, ${board.themeColor} 12%, transparent);`}
+            >
+              <header class="box-head">
+                <div class="box-title">
+                  <span class="platform-logo">
+                    {board.iconUrl ? <img src={board.iconUrl} alt="" aria-hidden="true" /> : board.platformName.slice(0, 1)}
+                  </span>
+                  <div class="platform-info">
+                    <h2>{board.platformName}</h2>
+                    <div class="platform-desc">{board.desc}</div>
+                  </div>
+                </div>
+                <div class="head-actions">
+                  <span class="platform-count">{board.items.length} 条</span>
+                  <button class="small-icon" type="button" aria-label={`刷新${board.platformName}`}>
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              </header>
+              <ol class="topic-list">
+                {board.items.slice(0, 10).map((item) => (
+                  <li class="topic-cell">
+                    <div class="topic-main">
+                      <a class="topic-title" href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
+                    </div>
+                    <svg class="external-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M7 17 17 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                      <path d="M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </li>
+                ))}
+              </ol>
+              <footer class="box-foot"><span>更新时间</span><strong>{formatUiNewTime(board.updatedAt)}</strong></footer>
+            </article>
+          ))}
+        </section>
+
+        <aside class="side" aria-label="侧边栏">
+          <section class="widget">
+            <div class="widget-head">站点概览</div>
+            <div class="widget-body">
+              <div class="stats">
+                <div class="stat"><span>平台</span><strong>{boards.length}</strong></div>
+                <div class="stat"><span>热点</span><strong>{data.trends.length}</strong></div>
+                <div class="stat"><span>收藏</span><strong>18</strong></div>
+                <div class="stat"><span>刷新</span><strong>5m</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="widget">
+            <div class="widget-head">热门节点</div>
+            <div class="widget-body">
+              <div class="tag-cloud">
+                {boards.slice(0, 8).map((board, index) => <a class={index === 0 ? "hot" : ""} href="#">{board.platformName}</a>)}
+              </div>
+            </div>
+          </section>
+
+          <section class="widget">
+            <div class="widget-head">更新队列</div>
+            <div class="widget-body">
+              <ul class="micro-list">
+                {boards.slice(0, 8).map((board) => <li><span>{board.platformName}</span><span>{formatUiNewTime(board.updatedAt)}</span></li>)}
+              </ul>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+    <script is:inline>
+      const themeToggle = document.querySelector(".theme-toggle");
+      const savedTheme = localStorage.getItem("v2ex-polish-theme") || "light";
+
+      function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme === "dark" ? "dark" : "";
+        themeToggle.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+        localStorage.setItem("v2ex-polish-theme", theme);
+      }
+
+      applyTheme(savedTheme);
+      themeToggle.addEventListener("click", () => {
+        const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(nextTheme);
+      });
+    </script>
+  </body>
+</html>

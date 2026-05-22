@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="sage">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>摸鱼热榜 · 宽屏低压力首页方向稿</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef1eb;
+        --surface: #f8f9f5;
+        --surface-2: #f1f3ee;
+        --surface-3: #e4e9df;
+        --text: #202823;
+        --text-soft: #59645c;
+        --text-faint: #879085;
+        --border: #d8ddd3;
+        --accent: #607568;
+        --accent-soft: #dfe8df;
+        --accent-line: #afbdad;
+        --good: #607568;
+        --down: #8b7568;
+        --shadow: 0 1px 2px rgba(30, 38, 33, 0.05), 0 16px 48px rgba(30, 38, 33, 0.06);
+        --radius-lg: 26px;
+        --radius-md: 18px;
+        --radius-sm: 12px;
+        --font-ui: "Raleway", "Inter", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+        --font-serif: "Lora", "Georgia", "Noto Serif SC", serif;
+        --font-mono: "Space Mono", "SFMono-Regular", Consolas, monospace;
+      }
+
+      html[data-theme="slate"] {
+        --bg: #edf0f1;
+        --surface: #f8faf9;
+        --surface-2: #eff3f4;
+        --surface-3: #dde5e7;
+        --text: #20262a;
+        --text-soft: #5b666c;
+        --text-faint: #879197;
+        --border: #d4dddf;
+        --accent: #586f7b;
+        --accent-soft: #dfe8eb;
+        --accent-line: #adbcc2;
+        --good: #55706a;
+        --down: #806f6a;
+      }
+
+      html[data-theme="linen"] {
+        --bg: #f0ece4;
+        --surface: #fbf9f3;
+        --surface-2: #f2ede3;
+        --surface-3: #e6ddce;
+        --text: #292620;
+        --text-soft: #635c50;
+        --text-faint: #8f8779;
+        --border: #dcd4c4;
+        --accent: #766d5a;
+        --accent-soft: #e7e0d2;
+        --accent-line: #bdb2a0;
+        --good: #65755b;
+        --down: #846d60;
+      }
+
+      html[data-theme="paper"] {
+        --bg: #f2f1ec;
+        --surface: #fbfaf6;
+        --surface-2: #f0efe9;
+        --surface-3: #e3e2dc;
+        --text: #252724;
+        --text-soft: #60645e;
+        --text-faint: #8b8f88;
+        --border: #d9d8d1;
+        --accent: #646d62;
+        --accent-soft: #e2e7df;
+        --accent-line: #b8bfb4;
+        --good: #646d62;
+        --down: #7b7265;
+      }
+
+      html[data-theme="night"] {
+        color-scheme: dark;
+        --bg: #171b1c;
+        --surface: #202526;
+        --surface-2: #252b2c;
+        --surface-3: #2f3636;
+        --text: #ecece6;
+        --text-soft: #b3bbb7;
+        --text-faint: #808a87;
+        --border: #394140;
+        --accent: #a7b9aa;
+        --accent-soft: #303b34;
+        --accent-line: #526157;
+        --good: #b2c4a8;
+        --down: #c0aaa0;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 16px 48px rgba(0, 0, 0, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        background:
+          linear-gradient(180deg, color-mix(in srgb, var(--surface) 34%, transparent), transparent 360px),
+          var(--bg);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 15px;
+        line-height: 1.55;
+        letter-spacing: 0;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1880px, calc(100vw - 40px));
+        margin: 0 auto;
+        padding: 18px 0 28px;
+      }
+
+      .app-frame {
+        min-height: calc(100dvh - 36px);
+        border: 1px solid var(--border);
+        border-radius: 32px;
+        background: color-mix(in srgb, var(--surface) 86%, transparent);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: 280px minmax(320px, 1fr) auto;
+        align-items: center;
+        gap: 18px;
+        min-height: 72px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--surface) 78%, transparent);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border: 1px solid var(--accent-line);
+        border-radius: 14px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-family: var(--font-serif);
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .brand-name {
+        min-width: 0;
+      }
+
+      .brand-name strong {
+        display: block;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .brand-name span {
+        display: block;
+        margin-top: 4px;
+        overflow: hidden;
+        color: var(--text-faint);
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-2);
+        color: var(--text-faint);
+      }
+
+      .search svg {
+        flex: 0 0 auto;
+      }
+
+      .search span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .theme-bar {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .theme-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 76px;
+        min-height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-soft);
+        cursor: pointer;
+        transition:
+          background 180ms ease,
+          border-color 180ms ease,
+          color 180ms ease;
+      }
+
+      .theme-btn:hover,
+      .theme-btn:focus-visible,
+      .theme-btn.is-active {
+        border-color: var(--accent-line);
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .theme-btn:focus-visible,
+      .quick-link:focus-visible,
+      .topic-row:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent);
+        outline-offset: 2px;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr) 330px;
+        min-height: calc(100dvh - 109px);
+      }
+
+      .rail,
+      .aside {
+        background: color-mix(in srgb, var(--surface-2) 58%, transparent);
+      }
+
+      .rail {
+        border-right: 1px solid var(--border);
+        padding: 22px 18px;
+      }
+
+      .aside {
+        border-left: 1px solid var(--border);
+        padding: 22px 18px;
+      }
+
+      .rail-section + .rail-section,
+      .aside-section + .aside-section {
+        margin-top: 24px;
+        padding-top: 22px;
+        border-top: 1px solid var(--border);
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--text-faint);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(30px, 3.6vw, 56px);
+        font-weight: 600;
+        line-height: 1.06;
+        letter-spacing: 0;
+      }
+
+      .intro-copy {
+        margin: 16px 0 0;
+        color: var(--text-soft);
+        font-size: 14px;
+        line-height: 1.9;
+      }
+
+      .quiet-score {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: end;
+        margin-top: 22px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .quiet-score strong {
+        font-family: var(--font-serif);
+        font-size: 44px;
+        line-height: 1;
+      }
+
+      .quiet-score span,
+      .meta {
+        color: var(--text-faint);
+        font-size: 12px;
+      }
+
+      .quick-links {
+        display: grid;
+        gap: 8px;
+      }
+
+      .quick-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-height: 42px;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        color: var(--text-soft);
+      }
+
+      .quick-link:hover {
+        border-color: var(--border);
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .quick-link b {
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 400;
+      }
+
+      .content {
+        min-width: 0;
+        padding: 22px;
+      }
+
+      .content-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        margin-bottom: 18px;
+      }
+
+      .content-head h2 {
+        margin: 0;
+        font-size: 21px;
+        font-weight: 700;
+      }
+
+      .content-head p {
+        max-width: 720px;
+        margin: 6px 0 0;
+        color: var(--text-soft);
+      }
+
+      .time-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-2);
+        color: var(--text-soft);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .hero-strip {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .lead-card,
+      .summary-card,
+      .board-card,
+      .side-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+      }
+
+      .lead-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 178px;
+        gap: 20px;
+        min-height: 190px;
+        padding: 22px;
+      }
+
+      .lead-card .tag {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .lead-card h3 {
+        max-width: 780px;
+        margin: 18px 0 8px;
+        font-size: clamp(24px, 2.5vw, 40px);
+        font-weight: 700;
+        line-height: 1.18;
+      }
+
+      .lead-card p {
+        max-width: 760px;
+        margin: 0;
+        color: var(--text-soft);
+        line-height: 1.8;
+      }
+
+      .lead-metric {
+        display: grid;
+        align-content: center;
+        justify-items: end;
+        border-left: 1px solid var(--border);
+        padding-left: 18px;
+        text-align: right;
+      }
+
+      .lead-metric strong {
+        font-family: var(--font-serif);
+        font-size: 58px;
+        line-height: 1;
+      }
+
+      .lead-metric span {
+        margin-top: 8px;
+        color: var(--text-faint);
+        font-size: 12px;
+      }
+
+      .summary-card {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        overflow: hidden;
+        background: var(--border);
+      }
+
+      .summary-item {
+        min-height: 94px;
+        padding: 18px;
+        background: var(--surface);
+      }
+
+      .summary-item span {
+        color: var(--text-faint);
+        font-size: 12px;
+      }
+
+      .summary-item strong {
+        display: block;
+        margin-top: 9px;
+        font-family: var(--font-mono);
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .board-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(210px, 1fr));
+        gap: 14px;
+      }
+
+      .board-card {
+        min-width: 0;
+        padding: 16px;
+        border-radius: var(--radius-md);
+      }
+
+      .board-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .platform {
+        min-width: 0;
+      }
+
+      .platform strong {
+        display: block;
+        overflow: hidden;
+        font-size: 15px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .platform span {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-faint);
+        font-size: 12px;
+      }
+
+      .soft-badge {
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--surface-2);
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        padding: 5px 8px;
+      }
+
+      .topic-list {
+        display: grid;
+        gap: 2px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .topic-row {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 38px;
+        border-radius: 10px;
+        color: var(--text);
+      }
+
+      .topic-row:hover {
+        background: var(--surface-2);
+      }
+
+      .topic-row .num {
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        text-align: right;
+      }
+
+      .topic-row .title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .topic-row .heat {
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+
+      .side-card {
+        padding: 16px;
+        border-radius: var(--radius-md);
+      }
+
+      .side-card + .side-card {
+        margin-top: 14px;
+      }
+
+      .side-card h3 {
+        margin: 0 0 12px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .market-list,
+      .theme-notes {
+        display: grid;
+        gap: 8px;
+      }
+
+      .market-row,
+      .note-row {
+        display: grid;
+        grid-template-columns: 76px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 36px;
+        border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+      }
+
+      .market-row:first-child,
+      .note-row:first-child {
+        border-top: 0;
+      }
+
+      .market-row span,
+      .note-row span {
+        color: var(--text-faint);
+        font-size: 12px;
+      }
+
+      .market-row strong,
+      .note-row strong {
+        font-family: var(--font-mono);
+        font-size: 13px;
+      }
+
+      .up {
+        color: var(--good);
+      }
+
+      .down {
+        color: var(--down);
+      }
+
+      .note-row {
+        grid-template-columns: 88px minmax(0, 1fr);
+      }
+
+      .quiet-text {
+        margin: 12px 0 0;
+        color: var(--text-soft);
+        font-size: 13px;
+        line-height: 1.85;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 22px 20px;
+        color: var(--text-faint);
+        font-size: 12px;
+      }
+
+      @media (max-width: 1480px) {
+        .workspace {
+          grid-template-columns: 236px minmax(0, 1fr) 300px;
+        }
+
+        .board-grid {
+          grid-template-columns: repeat(3, minmax(210px, 1fr));
+        }
+      }
+
+      @media (max-width: 1180px) {
+        .shell {
+          width: min(100vw - 28px, 1880px);
+        }
+
+        .topbar {
+          grid-template-columns: 1fr;
+        }
+
+        .theme-bar {
+          justify-content: flex-start;
+          flex-wrap: wrap;
+        }
+
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .aside {
+          border: 0;
+        }
+
+        .rail {
+          border-bottom: 1px solid var(--border);
+        }
+
+        .aside {
+          border-top: 1px solid var(--border);
+        }
+
+        .rail {
+          display: grid;
+          grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+          gap: 18px;
+        }
+
+        .rail-section + .rail-section {
+          margin-top: 0;
+          padding-top: 0;
+          border-top: 0;
+        }
+
+        .aside {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .aside-section + .aside-section,
+        .side-card + .side-card {
+          margin-top: 0;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .app-frame {
+          border-radius: 24px;
+        }
+
+        .content {
+          padding: 16px;
+        }
+
+        .content-head,
+        .hero-strip,
+        .lead-card,
+        .rail,
+        .aside {
+          grid-template-columns: 1fr;
+        }
+
+        .lead-metric {
+          justify-items: start;
+          border-top: 1px solid var(--border);
+          border-left: 0;
+          padding-top: 16px;
+          padding-left: 0;
+          text-align: left;
+        }
+
+        .board-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .summary-card {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .shell {
+          width: min(100vw - 20px, 1880px);
+          padding-top: 10px;
+        }
+
+        .topbar,
+        .rail,
+        .content,
+        .aside {
+          padding: 14px;
+        }
+
+        .theme-btn {
+          min-width: auto;
+          flex: 1 1 42%;
+        }
+
+        .board-grid,
+        .summary-card {
+          grid-template-columns: 1fr;
+        }
+
+        .topic-row {
+          grid-template-columns: 24px minmax(0, 1fr);
+          padding: 6px 0;
+        }
+
+        .topic-row .heat {
+          grid-column: 2;
+        }
+
+        .footer {
+          flex-direction: column;
+          padding-inline: 16px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="app-frame">
+        <header class="topbar">
+          <a class="brand" href="#" aria-label="摸鱼热榜首页">
+            <span class="brand-mark">M</span>
+            <span class="brand-name">
+              <strong>摸鱼热榜</strong>
+              <span>公开榜单链接聚合器 · 安静模式</span>
+            </span>
+          </a>
+
+          <div class="search" role="search" aria-label="搜索占位">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+            <span>搜索平台或标题，低调一点看热榜</span>
+          </div>
+
+          <nav class="theme-bar" aria-label="选择主题">
+            <button class="theme-btn is-active" type="button" data-theme="sage">鼠尾草</button>
+            <button class="theme-btn" type="button" data-theme="slate">灰蓝</button>
+            <button class="theme-btn" type="button" data-theme="linen">亚麻</button>
+            <button class="theme-btn" type="button" data-theme="paper">纸灰</button>
+            <button class="theme-btn" type="button" data-theme="night">夜班</button>
+          </nav>
+        </header>
+
+        <main class="workspace">
+          <aside class="rail" aria-label="首页说明">
+            <section class="rail-section">
+              <p class="eyebrow">Calm Wide Homepage</p>
+              <h1>像工作台一样安静。</h1>
+              <p class="intro-copy">
+                这版不抢眼、不热闹、不像娱乐网站。宽屏优先，把热榜当成一组可扫描的数据面板，降低颜色刺激和视觉压力。
+              </p>
+              <div class="quiet-score">
+                <div>
+                  <span>视觉压力指数</span>
+                  <strong>低</strong>
+                </div>
+                <span>少色彩<br />少装饰</span>
+              </div>
+            </section>
+
+            <section class="rail-section">
+              <p class="eyebrow">Sources</p>
+              <nav class="quick-links" aria-label="快捷平台">
+                <a class="quick-link" href="#weibo"><span>微博热搜</span><b>36</b></a>
+                <a class="quick-link" href="#zhihu"><span>知乎热榜</span><b>50</b></a>
+                <a class="quick-link" href="#bilibili"><span>Bilibili</span><b>24</b></a>
+                <a class="quick-link" href="#v2ex"><span>V2EX</span><b>30</b></a>
+                <a class="quick-link" href="#github"><span>GitHub</span><b>25</b></a>
+                <a class="quick-link" href="#douban"><span>豆瓣</span><b>18</b></a>
+              </nav>
+            </section>
+          </aside>
+
+          <section class="content" aria-label="热榜宽屏内容">
+            <div class="content-head">
+              <div>
+                <h2>今日热榜总览</h2>
+                <p>首屏按“横向扫描”组织：左边看意图，中间看榜单，右边看状态。颜色只做层级提示，不制造紧张感。</p>
+              </div>
+              <span class="time-chip">2026-05-22 10:24</span>
+            </div>
+
+            <div class="hero-strip">
+              <article class="lead-card">
+                <div>
+                  <span class="tag">当前关注</span>
+                  <h3>周五下午的信息流，应该像一杯温水。</h3>
+                  <p>
+                    重点标题放大但不夸张，热度数字收进右侧，避免大红大紫和跳动标签。老板走过时，看起来只是一个普通信息看板。
+                  </p>
+                </div>
+                <div class="lead-metric">
+                  <strong>128</strong>
+                  <span>条公开榜单链接<br />已整理</span>
+                </div>
+              </article>
+
+              <section class="summary-card" aria-label="统计摘要">
+                <div class="summary-item"><span>平台</span><strong>9</strong></div>
+                <div class="summary-item"><span>已更新</span><strong>7</strong></div>
+                <div class="summary-item"><span>热度峰值</span><strong>829K</strong></div>
+                <div class="summary-item"><span>页面氛围</span><strong>Calm</strong></div>
+              </section>
+            </div>
+
+            <div class="board-grid">
+              <article class="board-card" id="weibo">
+                <header class="board-head">
+                  <span class="platform"><strong>微博热搜</strong><span>情绪型标题降噪展示</span></span>
+                  <span class="soft-badge">36</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">周五下午如何保持稳定工作状态</span><span class="heat">829K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">电视剧新角色上线讨论</span><span class="heat">421K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">城市通勤观察报告</span><span class="heat">386K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">午休二十分钟到底有没有用</span><span class="heat">219K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">一杯咖啡能撑多久</span><span class="heat">188K</span></a></li>
+                </ol>
+              </article>
+
+              <article class="board-card" id="zhihu">
+                <header class="board-head">
+                  <span class="platform"><strong>知乎热榜</strong><span>长标题优先可读</span></span>
+                  <span class="soft-badge">50</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">如何判断一个工具是否真的提升效率</span><span class="heat">61K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">为什么安静的信息流更适合工作间隙</span><span class="heat">54K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">远程办公如何建立清晰边界</span><span class="heat">43K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">午后犯困有哪些低成本解决方式</span><span class="heat">39K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">有哪些适合碎片时间阅读的内容源</span><span class="heat">31K</span></a></li>
+                </ol>
+              </article>
+
+              <article class="board-card" id="bilibili">
+                <header class="board-head">
+                  <span class="platform"><strong>Bilibili</strong><span>视频热点轻量扫描</span></span>
+                  <span class="soft-badge">24</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">本周游戏资讯轻量整理</span><span class="heat">48K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">音乐区新现场合集</span><span class="heat">42K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">办公室桌搭改造记录</span><span class="heat">38K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">一分钟看懂新硬件</span><span class="heat">30K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">适合午休看的纪录短片</span><span class="heat">27K</span></a></li>
+                </ol>
+              </article>
+
+              <article class="board-card" id="v2ex">
+                <header class="board-head">
+                  <span class="platform"><strong>V2EX</strong><span>技术社区不打扰</span></span>
+                  <span class="soft-badge">30</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">大家最近在用什么笔记工具</span><span class="heat">12K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">轻量部署方案讨论</span><span class="heat">9K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">菜单栏如何清爽一点</span><span class="heat">8K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">今天学到的小技巧</span><span class="heat">7K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">周五下午的代码 review</span><span class="heat">6K</span></a></li>
+                </ol>
+              </article>
+
+              <article class="board-card" id="github">
+                <header class="board-head">
+                  <span class="platform"><strong>GitHub</strong><span>开源趋势</span></span>
+                  <span class="soft-badge">25</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">quiet-dashboard-starter</span><span class="heat">8.2K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">local-first-notes</span><span class="heat">6.7K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">tiny-css-reset</span><span class="heat">5.1K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">fastapi-cache-patterns</span><span class="heat">4.3K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">astro-static-board</span><span class="heat">3.8K</span></a></li>
+                </ol>
+              </article>
+
+              <article class="board-card" id="douban">
+                <header class="board-head">
+                  <span class="platform"><strong>豆瓣小组</strong><span>生活类轻内容</span></span>
+                  <span class="soft-badge">18</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">适合办公桌的小物件</span><span class="heat">4K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">下班后散步路线分享</span><span class="heat">3K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">最近读到的舒服文字</span><span class="heat">3K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">不费脑的周末安排</span><span class="heat">2K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">便利店新品记录</span><span class="heat">2K</span></a></li>
+                </ol>
+              </article>
+
+              <article class="board-card">
+                <header class="board-head">
+                  <span class="platform"><strong>抖音热点</strong><span>短内容入口</span></span>
+                  <span class="soft-badge">30</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">今日轻松话题合集</span><span class="heat">92K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">城市天气变化</span><span class="heat">81K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">晚餐吃什么</span><span class="heat">76K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">周末小旅行</span><span class="heat">64K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">办公室拉伸</span><span class="heat">52K</span></a></li>
+                </ol>
+              </article>
+
+              <article class="board-card">
+                <header class="board-head">
+                  <span class="platform"><strong>虎扑热榜</strong><span>体育讨论</span></span>
+                  <span class="soft-badge">22</span>
+                </header>
+                <ol class="topic-list">
+                  <li><a class="topic-row" href="#"><span class="num">01</span><span class="title">今日比赛简报</span><span class="heat">38K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">02</span><span class="title">球员状态观察</span><span class="heat">31K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">03</span><span class="title">赛后讨论集合</span><span class="heat">28K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">04</span><span class="title">新赛季赛程</span><span class="heat">25K</span></a></li>
+                  <li><a class="topic-row" href="#"><span class="num">05</span><span class="title">装备选择分享</span><span class="heat">19K</span></a></li>
+                </ol>
+              </article>
+            </div>
+          </section>
+
+          <aside class="aside" aria-label="状态信息">
+            <section class="side-card aside-section">
+              <h3>市场概览</h3>
+              <div class="market-list">
+                <div class="market-row"><span>NASDAQ</span><strong>17,812.04</strong><b class="up">+0.42%</b></div>
+                <div class="market-row"><span>S&P 500</span><strong>5,321.88</strong><b class="up">+0.18%</b></div>
+                <div class="market-row"><span>DOW</span><strong>39,902.17</strong><b class="down">-0.06%</b></div>
+              </div>
+              <p class="quiet-text">仅供信息展示，不构成投资建议。数据区保持弱对比，不抢主内容。</p>
+            </section>
+
+            <section class="side-card aside-section">
+              <h3>本版设计策略</h3>
+              <div class="theme-notes">
+                <div class="note-row"><span>布局</span><strong>宽屏三栏工作台</strong></div>
+                <div class="note-row"><span>颜色</span><strong>低饱和单强调色</strong></div>
+                <div class="note-row"><span>装饰</span><strong>弱化到边框和留白</strong></div>
+                <div class="note-row"><span>动效</span><strong>只保留状态切换</strong></div>
+              </div>
+            </section>
+
+            <section class="side-card aside-section">
+              <h3>主题选择建议</h3>
+              <p class="quiet-text">
+                鼠尾草最温和，灰蓝最像办公系统，亚麻更亲近，纸灰最克制，夜班适合深色偏好。选一个后再细化密度、字体和真实数据。
+              </p>
+            </section>
+          </aside>
+        </main>
+
+        <footer class="footer">
+          <span>© 2026 摸鱼热榜 · 公开榜单链接聚合器</span>
+          <span>只展示标题、原站链接、平台、排名、热度、更新时间。</span>
+        </footer>
+      </div>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const themeButtons = Array.from(document.querySelectorAll(".theme-btn"));
+
+      themeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const theme = button.getAttribute("data-theme");
+          if (!theme) return;
+
+          root.setAttribute("data-theme", theme);
+          themeButtons.forEach((item) => {
+            item.classList.toggle("is-active", item === button);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
