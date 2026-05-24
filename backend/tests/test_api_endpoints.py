@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NoReturn
+
 import httpx
 import pytest
 from httpx import AsyncClient
@@ -98,7 +100,11 @@ async def test_market_us_happy_path(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_market_cn_happy_path(client: AsyncClient) -> None:
+async def test_market_cn_happy_path(client: AsyncClient, test_app) -> None:
+    from app.scheduler import _refresh_cn_market
+
+    await _refresh_cn_market(test_app.state.seesea_client, test_app.state.cache)
+
     response = await client.get("/api/market/cn")
     assert response.status_code == 200
 
@@ -112,8 +118,11 @@ async def test_market_cn_happy_path(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_market_cn_returns_recent_trade_snapshot(client: AsyncClient, test_app) -> None:
+async def test_scheduler_refreshes_cn_market_with_stock_sdk_fallback(
+    client: AsyncClient, test_app
+) -> None:
     from app.clients.seesea import SeeSeaClient
+    from app.scheduler import _refresh_cn_market
 
     class EmptyLiveTransport(httpx.AsyncBaseTransport):
         async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
@@ -190,6 +199,7 @@ async def test_market_cn_returns_recent_trade_snapshot(client: AsyncClient, test
     seesea._stock_sdk_client = RecentTradeStockClient()
     test_app.state.seesea_client = seesea
 
+    await _refresh_cn_market(seesea, test_app.state.cache)
     response = await client.get("/api/market/cn")
     assert response.status_code == 200
 
@@ -256,7 +266,7 @@ async def test_hot_sdk_fallback_is_disabled_by_default() -> None:
 
 
 @pytest.mark.asyncio
-async def test_market_cn_timeout_falls_back_to_stale_cache(client: AsyncClient, test_app) -> None:
+async def test_market_cn_reads_expired_cache_as_stale(client: AsyncClient, test_app) -> None:
     import sqlite3
     from datetime import UTC, datetime, timedelta
 
@@ -284,17 +294,17 @@ async def test_market_cn_timeout_falls_back_to_stale_cache(client: AsyncClient, 
     conn.commit()
     conn.close()
 
-    class TimeoutSeeSeaClient:
+    class FailIfCalledSeeSeaClient:
         async def fetch_cn_market(self) -> object:
-            raise TimeoutError("mock timeout")
+            raise AssertionError("market cn route should only read cache")
 
         async def fetch_cn_market_recent_trade_snapshot(self) -> object:
-            raise TimeoutError("mock snapshot timeout")
+            raise AssertionError("market cn route should only read cache")
 
         async def aclose(self) -> None:
             return None
 
-    test_app.state.seesea_client = TimeoutSeeSeaClient()
+    test_app.state.seesea_client = FailIfCalledSeeSeaClient()
 
     response = await client.get("/api/market/cn")
     assert response.status_code == 200
@@ -309,17 +319,17 @@ async def test_market_cn_timeout_falls_back_to_stale_cache(client: AsyncClient, 
 async def test_market_cn_returns_empty_stale_payload_without_cache(
     client: AsyncClient, test_app
 ) -> None:
-    class TimeoutSeeSeaClient:
+    class FailIfCalledSeeSeaClient:
         async def fetch_cn_market(self) -> object:
-            raise TimeoutError("mock timeout")
+            raise AssertionError("market cn route should only read cache")
 
         async def fetch_cn_market_recent_trade_snapshot(self) -> object:
-            raise TimeoutError("mock snapshot timeout")
+            raise AssertionError("market cn route should only read cache")
 
         async def aclose(self) -> None:
             return None
 
-    test_app.state.seesea_client = TimeoutSeeSeaClient()
+    test_app.state.seesea_client = FailIfCalledSeeSeaClient()
 
     response = await client.get("/api/market/cn")
     assert response.status_code == 200
@@ -333,7 +343,7 @@ async def test_market_cn_returns_empty_stale_payload_without_cache(
 
 
 @pytest.mark.asyncio
-async def test_market_cn_falls_back_to_recent_trade_snapshot(client: AsyncClient, test_app) -> None:
+async def test_scheduler_falls_back_to_recent_trade_snapshot(client: AsyncClient, test_app) -> None:
     from app.clients.seesea import SeeSeaError
     from app.models.cn_market import (
         CnMarketAnalysis,
@@ -341,9 +351,10 @@ async def test_market_cn_falls_back_to_recent_trade_snapshot(client: AsyncClient
         CnMarketResponse,
         CnMarketStock,
     )
+    from app.scheduler import _refresh_cn_market
 
     class SnapshotSeeSeaClient:
-        async def fetch_cn_market(self) -> object:
+        async def fetch_cn_market(self) -> NoReturn:
             raise SeeSeaError("SEESEA_UPSTREAM", "mock fail")
 
         async def fetch_cn_market_recent_trade_snapshot(self) -> CnMarketResponse:
@@ -383,6 +394,7 @@ async def test_market_cn_falls_back_to_recent_trade_snapshot(client: AsyncClient
             return None
 
     test_app.state.seesea_client = SnapshotSeeSeaClient()
+    await _refresh_cn_market(test_app.state.seesea_client, test_app.state.cache)
     response = await client.get("/api/market/cn")
     assert response.status_code == 200
     payload = response.json()

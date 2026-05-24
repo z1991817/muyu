@@ -4,6 +4,7 @@ import asyncio
 import logging
 from contextlib import suppress
 from datetime import UTC, datetime, time
+from typing import Protocol
 
 from app.cache.policy import market_ttl_seconds
 from app.cache.sqlite import SQLiteCache
@@ -11,6 +12,7 @@ from app.clients.akshare import AkShareClient, AkShareError
 from app.clients.seesea import SeeSeaClient, SeeSeaError
 from app.config import settings
 from app.lib.china_holidays import get_china_rest_day_info
+from app.models.cn_market import CnMarketResponse
 from app.models.home import HomeResponse
 from app.models.market import MarketResponse, StocksResponse
 from app.models.source import Source, SourcesResponse
@@ -18,6 +20,12 @@ from app.models.trend import TrendsResponse
 from app.platforms import PLATFORMS
 
 logger = logging.getLogger(__name__)
+
+
+class CnMarketFetcher(Protocol):
+    async def fetch_cn_market(self) -> CnMarketResponse: ...
+
+    async def fetch_cn_market_recent_trade_snapshot(self) -> CnMarketResponse: ...
 
 
 def _now_iso() -> str:
@@ -129,17 +137,64 @@ async def _refresh_stocks(
         return None
 
 
+async def _refresh_cn_market(
+    seesea: CnMarketFetcher,
+    cache: SQLiteCache,
+) -> CnMarketResponse | None:
+    try:
+        response = await seesea.fetch_cn_market()
+        await cache.set(
+            "market:cn",
+            response.model_dump(mode="json"),
+            ttl_seconds=market_ttl_seconds("open"),
+            source_status="ok",
+        )
+        logger.info(
+            "scheduler: cn market refreshed (%d indices, %d stocks)",
+            len(response.indices),
+            len(response.stocks),
+        )
+        return response
+    except SeeSeaError as e:
+        logger.warning("scheduler: cn market refresh failed: %s", e)
+
+    try:
+        snapshot = await seesea.fetch_cn_market_recent_trade_snapshot()
+        await cache.set(
+            "market:cn",
+            snapshot.model_dump(mode="json"),
+            ttl_seconds=market_ttl_seconds("closed"),
+            source_status="stale",
+        )
+        logger.info(
+            "scheduler: cn market snapshot refreshed (%d indices, %d stocks)",
+            len(snapshot.indices),
+            len(snapshot.stocks),
+        )
+        return snapshot
+    except SeeSeaError as e:
+        logger.warning("scheduler: cn market snapshot refresh failed: %s", e)
+        return None
+
+
 async def _refresh_all(
     seesea: SeeSeaClient,
     akshare: AkShareClient,
     cache: SQLiteCache,
     default_platforms: list[str],
 ) -> None:
-    trends_result, sources_result, market_result, _stocks_result = await asyncio.gather(
+    (
+        trends_result,
+        sources_result,
+        market_result,
+        _stocks_result,
+        _cn_market_result,
+    ) = await asyncio.gather(
         _refresh_trends(seesea, cache, default_platforms),
         _refresh_sources(seesea, cache),
         _refresh_market(akshare, cache),
         _refresh_stocks(akshare, cache),
+        _refresh_cn_market(seesea, cache),
         return_exceptions=True,
     )
 
