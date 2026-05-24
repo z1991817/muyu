@@ -21,6 +21,9 @@ from app.platforms import PLATFORMS
 
 logger = logging.getLogger(__name__)
 
+INITIAL_REFRESH_DELAY_SECONDS = 10
+CN_MARKET_REFRESH_TIMEOUT_SECONDS = 25
+
 
 class CnMarketFetcher(Protocol):
     async def fetch_cn_market(self) -> CnMarketResponse: ...
@@ -142,7 +145,10 @@ async def _refresh_cn_market(
     cache: SQLiteCache,
 ) -> CnMarketResponse | None:
     try:
-        response = await seesea.fetch_cn_market()
+        response = await asyncio.wait_for(
+            seesea.fetch_cn_market(),
+            timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
+        )
         await cache.set(
             "market:cn",
             response.model_dump(mode="json"),
@@ -157,9 +163,14 @@ async def _refresh_cn_market(
         return response
     except SeeSeaError as e:
         logger.warning("scheduler: cn market refresh failed: %s", e)
+    except TimeoutError:
+        logger.warning("scheduler: cn market refresh timed out")
 
     try:
-        snapshot = await seesea.fetch_cn_market_recent_trade_snapshot()
+        snapshot = await asyncio.wait_for(
+            seesea.fetch_cn_market_recent_trade_snapshot(),
+            timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
+        )
         await cache.set(
             "market:cn",
             snapshot.model_dump(mode="json"),
@@ -174,6 +185,9 @@ async def _refresh_cn_market(
         return snapshot
     except SeeSeaError as e:
         logger.warning("scheduler: cn market snapshot refresh failed: %s", e)
+        return None
+    except TimeoutError:
+        logger.warning("scheduler: cn market snapshot refresh timed out")
         return None
 
 
@@ -221,12 +235,12 @@ async def _refresh_all(
 
 
 async def run_refresh_loop(app) -> None:  # type: ignore[no-untyped-def]
-    # 启动后立即刷一次，不等第一个 sleep
     cache: SQLiteCache = app.state.cache
     seesea: SeeSeaClient = app.state.seesea_client
     akshare: AkShareClient = app.state.akshare_client
     default_platforms: list[str] = app.state.default_platforms
 
+    await asyncio.sleep(INITIAL_REFRESH_DELAY_SECONDS)
     await _refresh_all(seesea, akshare, cache, default_platforms)
 
     while True:
