@@ -140,10 +140,8 @@ class SeeSeaClient:
             self._fetch_stock_data(
                 "/api/stock/list/a",
                 None,
-                "get_quotes",
-                "a",
-                fallback_sdk_method="_fetch_recent_cn_stock_history",
-                fallback_sdk_args=(last_trade_date,),
+                "_fetch_recent_cn_stock_history",
+                last_trade_date,
             ),
             self._fetch_stock_data("/api/stock/fund_flow", None, "get_market_fund_flow"),
             self._fetch_stock_data(
