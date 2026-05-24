@@ -31,7 +31,8 @@
 - [frontend/AGENTS.md](frontend/AGENTS.md) —— Astro 前端细则
 - [backend/AGENTS.md](backend/AGENTS.md) —— FastAPI 后端细则
 - [doc/摸鱼热榜技术选型方案.md](doc/摸鱼热榜技术选型方案.md) —— 架构选型、API 设计、缓存策略、部署
-- [doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md) —— 视觉规范（Riso/Zine 风格）
+- [doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md) —— 常规页面视觉规范（Riso/Zine 风格）
+- [doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](doc/摸鱼热榜-ui-new-Vercel风格设计规范.md) —— `/ui-new/*` 新 UI 视觉规范（Vercel-like 简约风格）
 - [doc/摸鱼热榜首页设计规范.md](doc/摸鱼热榜首页设计规范.md) —— 首页信息架构
 
 ### 项目专属 Skills（Claude Code）
@@ -60,11 +61,24 @@ moyu/
 1. SeeSea 内网，永不暴露公网。
 2. 前端永不直连 SeeSea，必须经 FastAPI。
 3. 只保留标题 + 原站链接，禁止转载正文 / AI 摘要 / 评论 / UGC。
-4. UI 一律沿用 Riso 设计规范，禁止重选风格、禁止引入 React/Vue/Element 类 UI 库。
+4. UI 按路由分流：常规页面沿用 Riso 设计规范，`/ui-new/*` 沿用 Vercel-like 简约设计规范；禁止引入 React/Vue/Element 类 UI 库。
 5. 字段命名：API 响应 camelCase，Python 内部 snake_case，由 Pydantic alias 完成边界转换。
 6. 美股响应必须带"仅供信息展示，不构成投资建议"。
 
 详见 [AGENTS.md](AGENTS.md)。
+
+## 本地一键启停（macOS/Linux）
+
+可使用脚本统一管理 SeeSea / FastAPI / Astro，本地启动时默认绕过系统代理（`NO_PROXY='*'`）：
+
+```bash
+chmod +x ops/restart.sh
+./ops/restart.sh start
+./ops/restart.sh status
+./ops/restart.sh stop
+```
+
+日志目录：`/tmp/moyu-local`。
 
 ## License & 合规
 

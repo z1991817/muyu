@@ -1,15 +1,52 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import asyncio
+from collections.abc import Callable
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
+from typing import Protocol, cast
 
 import httpx
 from fastapi import Request
 from pydantic import ValidationError
 
 from app.config import settings
+from app.models.cn_market import (
+    CnFundFlow,
+    CnLimitStock,
+    CnMarketAnalysis,
+    CnMarketIndex,
+    CnMarketResponse,
+    CnMarketStock,
+)
 from app.models.source import Source
 from app.models.trend import Trend
 from app.platforms import get_platform_name
+
+_CN_INDEX_NAMES = {"上证指数", "深证成指", "创业板指"}
+_CN_HISTORY_SYMBOLS = (
+    ("600519", "贵州茅台"),
+    ("300750", "宁德时代"),
+    ("601318", "中国平安"),
+    ("600036", "招商银行"),
+    ("000333", "美的集团"),
+    ("002594", "比亚迪"),
+    ("000858", "五粮液"),
+    ("600900", "长江电力"),
+    ("601899", "紫金矿业"),
+    ("000651", "格力电器"),
+)
+
+
+class StockKlineClient(Protocol):
+    def get_kline(
+        self,
+        symbol: str,
+        period: str,
+        start_date: str,
+        end_date: str,
+        adjust: str,
+    ) -> object: ...
 
 
 class SeeSeaError(Exception):
@@ -19,28 +56,53 @@ class SeeSeaError(Exception):
 
 
 class SeeSeaClient:
-    def __init__(self, base_url: str | None = None) -> None:
+    def __init__(
+        self,
+        base_url: str | None = None,
+        *,
+        enable_hot_sdk_fallback: bool = False,
+        enable_stock_sdk_fallback: bool = False,
+    ) -> None:
         self._client = httpx.AsyncClient(
             base_url=(base_url or settings.seesea_base_url).rstrip("/"),
             timeout=httpx.Timeout(8.0, connect=3.0),
             headers={"User-Agent": "moyu-aggregator/0.1"},
         )
+        self._sdk_client: object | None = None
+        self._stock_sdk_client: object | None = None
+        self._enable_hot_sdk_fallback = enable_hot_sdk_fallback
+        self._enable_stock_sdk_fallback = enable_stock_sdk_fallback
 
     async def aclose(self) -> None:
         await self._client.aclose()
 
     async def fetch_multiple(self, platforms: list[str]) -> list[Trend]:
-        payload = await self._get_json(
-            "/api/hot/multiple", {"platforms": ",".join(platforms), "latest": "true"}
-        )
+        try:
+            payload = await self._get_json(
+                "/api/hot/multiple", {"platforms": ",".join(platforms), "latest": "true"}
+            )
+        except SeeSeaError:
+            if not self._enable_hot_sdk_fallback:
+                raise
+            payload = await self._run_sdk("fetch_multiple_platforms", platforms)
         return self._parse_multi_payload(payload)
 
     async def fetch_single(self, platform: str) -> list[Trend]:
-        payload = await self._get_json(f"/api/hot/{platform}", {"latest": "true"})
+        try:
+            payload = await self._get_json(f"/api/hot/{platform}", {"latest": "true"})
+        except SeeSeaError:
+            if not self._enable_hot_sdk_fallback:
+                raise
+            payload = await self._run_sdk("fetch_platform", platform)
         return self._parse_single_payload(payload, platform)
 
     async def fetch_platforms(self) -> list[Source]:
-        payload = await self._get_json("/api/hot/platforms", None)
+        try:
+            payload = await self._get_json("/api/hot/platforms", None)
+        except SeeSeaError:
+            if not self._enable_hot_sdk_fallback:
+                raise
+            payload = await self._run_sdk("list_platforms")
         now = _now_iso()
         if isinstance(payload, list):
             return [
@@ -53,7 +115,138 @@ class SeeSeaClient:
                 for item in payload
                 if isinstance(item, dict)
             ]
+        if isinstance(payload, dict):
+            return [
+                Source(
+                    platform=str(platform),
+                    platform_name=str(platform_name),
+                    status="ok",
+                    updated_at=now,
+                )
+                for platform, platform_name in payload.items()
+            ]
         return []
+
+    async def fetch_cn_market(self) -> CnMarketResponse:
+        now = _now_iso()
+        last_trade_date = _recent_trade_date()
+        indices_raw, quotes_raw, fund_flow_raw, limit_up_raw, limit_down_raw = await asyncio.gather(
+            self._fetch_stock_data(
+                "/api/stock/market/indices",
+                None,
+                "get_index_list",
+                fallback_sdk_method="get_index_list",
+            ),
+            self._fetch_stock_data(
+                "/api/stock/list/a",
+                None,
+                "get_quotes",
+                "a",
+                fallback_sdk_method="_fetch_recent_cn_stock_history",
+                fallback_sdk_args=(last_trade_date,),
+            ),
+            self._fetch_stock_data("/api/stock/fund_flow", None, "get_market_fund_flow"),
+            self._fetch_stock_data(
+                "/api/stock/ranking",
+                {"type": "zt"},
+                "get_zt_pool",
+                fallback_params={"type": "zt", "date": last_trade_date},
+                fallback_sdk_method="get_zt_pool",
+                fallback_sdk_args=(last_trade_date,),
+            ),
+            self._fetch_stock_data(
+                "/api/stock/ranking",
+                {"type": "dt"},
+                "get_dt_pool",
+                fallback_params={"type": "dt", "date": last_trade_date},
+                fallback_sdk_method="get_dt_pool",
+                fallback_sdk_args=(last_trade_date,),
+            ),
+        )
+
+        indices = [
+            _map_cn_index(item, now)
+            for item in _iter_dict_items(indices_raw)
+            if _is_primary_cn_index(item)
+        ]
+        stocks = [_map_cn_stock(item, now) for item in _iter_dict_items(quotes_raw)]
+        stocks = [item for item in stocks if item is not None]
+        stocks.sort(key=lambda item: abs(item.change_pct), reverse=True)
+
+        response = CnMarketResponse(
+            indices=[item for item in indices if item is not None][:3],
+            stocks=stocks[:10],
+            analysis=CnMarketAnalysis(
+                fund_flows=[
+                    item
+                    for item in (_map_cn_fund_flow(raw) for raw in _iter_dict_items(fund_flow_raw))
+                    if item is not None
+                ][:6],
+                limit_up=[
+                    item
+                    for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_up_raw))
+                    if item is not None
+                ][:8],
+                limit_down=[
+                    item
+                    for item in (
+                        _map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_down_raw)
+                    )
+                    if item is not None
+                ][:8],
+            ),
+            stale=False,
+            updated_at=now,
+        )
+        if not response.indices and not response.stocks:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+        return response
+
+    async def fetch_cn_market_recent_trade_snapshot(self) -> CnMarketResponse:
+        if not self._enable_stock_sdk_fallback:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+
+        now = _now_iso()
+        trade_date = _recent_trade_date()
+
+        indices_raw = await self._run_stock_sdk("get_index_list")
+        quotes_raw = await self._run_stock_sdk("_fetch_recent_cn_stock_history", trade_date)
+        limit_up_raw = await self._run_stock_sdk("get_zt_pool", trade_date)
+        limit_down_raw = await self._run_stock_sdk("get_dt_pool", trade_date)
+
+        indices = [
+            _map_cn_index(item, now)
+            for item in _iter_dict_items(indices_raw)
+            if _is_primary_cn_index(item)
+        ]
+        stocks = [_map_cn_stock(item, now) for item in _iter_dict_items(quotes_raw)]
+        stocks = [item for item in stocks if item is not None]
+        stocks.sort(key=lambda item: abs(item.change_pct), reverse=True)
+
+        response = CnMarketResponse(
+            indices=[item for item in indices if item is not None][:3],
+            stocks=stocks[:10],
+            analysis=CnMarketAnalysis(
+                fund_flows=[],
+                limit_up=[
+                    item
+                    for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_up_raw))
+                    if item is not None
+                ][:8],
+                limit_down=[
+                    item
+                    for item in (
+                        _map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_down_raw)
+                    )
+                    if item is not None
+                ][:8],
+            ),
+            stale=True,
+            updated_at=now,
+        )
+        if not response.indices and not response.stocks:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+        return response
 
     async def _get_json(self, path: str, params: dict[str, str] | None) -> object:
         try:
@@ -62,6 +255,89 @@ class SeeSeaClient:
             return response.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
+
+    async def _fetch_stock_data(
+        self,
+        path: str,
+        params: dict[str, str] | None,
+        sdk_method: str,
+        *sdk_args: object,
+        fallback_params: dict[str, str] | None = None,
+        fallback_sdk_method: str | None = None,
+        fallback_sdk_args: tuple[object, ...] = (),
+    ) -> object:
+        try:
+            payload = await self._get_json(path, params)
+            if _iter_dict_items(payload):
+                return payload
+        except SeeSeaError:
+            pass
+
+        if self._enable_stock_sdk_fallback:
+            try:
+                payload = await self._run_stock_sdk(sdk_method, *sdk_args)
+                if _iter_dict_items(payload):
+                    return payload
+            except SeeSeaError:
+                pass
+
+        if fallback_params is not None:
+            try:
+                payload = await self._get_json(path, fallback_params)
+                if _iter_dict_items(payload):
+                    return payload
+            except SeeSeaError:
+                pass
+
+        if self._enable_stock_sdk_fallback and fallback_sdk_method is not None:
+            try:
+                return await self._run_stock_sdk(fallback_sdk_method, *fallback_sdk_args)
+            except SeeSeaError:
+                return []
+
+        return []
+
+    async def _run_sdk(self, method: str, *args: object) -> object:
+        try:
+            return await asyncio.to_thread(self._run_sdk_sync, method, *args)
+        except Exception as exc:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
+
+    def _run_sdk_sync(self, method: str, *args: object) -> object:
+        if self._sdk_client is None:
+            self._sdk_client = _create_sdk_client()
+
+        sdk_method = getattr(self._sdk_client, method)
+        result = sdk_method(*args)
+        if not getattr(result, "success", False):
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+        data = getattr(result, "data", None)
+        if data is None:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+        return data
+
+    async def _run_stock_sdk(self, method: str, *args: object) -> object:
+        try:
+            return await asyncio.to_thread(self._run_stock_sdk_sync, method, *args)
+        except Exception as exc:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
+
+    def _run_stock_sdk_sync(self, method: str, *args: object) -> object:
+        if self._stock_sdk_client is None:
+            self._stock_sdk_client = _create_stock_sdk_client()
+
+        if method == "_fetch_recent_cn_stock_history":
+            trade_date = str(args[0]) if args else _recent_trade_date()
+            return _fetch_recent_cn_stock_history(self._stock_sdk_client, trade_date)
+
+        sdk_method: Callable[..., object] = getattr(self._stock_sdk_client, method)
+        result = sdk_method(*args)
+        if not getattr(result, "success", False):
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+        data = getattr(result, "data", None)
+        if data is None:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+        return data
 
     def _parse_multi_payload(self, payload: object) -> list[Trend]:
         groups = []
@@ -114,11 +390,15 @@ def _map_item(
     item: dict[str, object], platform: str, platform_name: str, rank: int, fallback_time: str
 ) -> Trend | None:
     title = str(item.get("title") or "").strip()
-    url = str(item.get("url") or item.get("mobileUrl") or "").strip()
+    url = str(item.get("url") or item.get("mobileUrl") or item.get("mobile_url") or "").strip()
     if not title or not url:
         return None
 
-    heat_value = item.get("hotValue")
+    raw_rank = item.get("rank")
+    if isinstance(raw_rank, int):
+        rank = raw_rank
+
+    heat_value = item.get("hotValue") or item.get("hot_value")
     heat = str(heat_value) if heat_value is not None else str(item.get("hotIndex") or "")
     updated_at = str(item.get("publishTime") or fallback_time)
 
@@ -139,6 +419,185 @@ def _map_item(
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _recent_trade_date(today: date | None = None) -> str:
+    current = today or datetime.now(UTC).date()
+    current -= timedelta(days=1)
+    while current.weekday() >= 5:
+        current -= timedelta(days=1)
+    return current.strftime("%Y%m%d")
+
+
+def _iter_dict_items(payload: object) -> list[dict[str, object]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        data = payload.get("data")
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict)]
+        items = payload.get("items")
+        if isinstance(items, list):
+            return [item for item in items if isinstance(item, dict)]
+        result = payload.get("result")
+        if isinstance(result, list):
+            return [item for item in result if isinstance(item, dict)]
+    return []
+
+
+def _text(raw: dict[str, object], *keys: str, default: str = "") -> str:
+    for key in keys:
+        value = raw.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return default
+
+
+def _number(raw: dict[str, object], *keys: str, default: float = 0.0) -> float:
+    for key in keys:
+        value = raw.get(key)
+        if value is None or value == "":
+            continue
+        try:
+            return float(Decimal(str(value).replace(",", "").replace("%", "")))
+        except (InvalidOperation, ValueError):
+            continue
+    return default
+
+
+def _is_primary_cn_index(raw: dict[str, object]) -> bool:
+    symbol = _text(raw, "代码", "code", "symbol", "指数代码")
+    name = _text(raw, "名称", "name", "指数名称")
+    return name in _CN_INDEX_NAMES or symbol in {"000001", "399001", "399006"}
+
+
+def _stock_url(symbol: str) -> str:
+    return (
+        f"https://quote.eastmoney.com/{symbol}.html" if symbol else "https://quote.eastmoney.com/"
+    )
+
+
+def _map_cn_index(raw: dict[str, object], updated_at: str) -> CnMarketIndex | None:
+    symbol = _text(raw, "代码", "code", "symbol", "指数代码")
+    name = _text(raw, "名称", "name", "指数名称")
+    if not name:
+        return None
+    return CnMarketIndex(
+        symbol=symbol or name,
+        name=name,
+        price=_number(raw, "最新价", "price", "current_price", "最新"),
+        change=_number(raw, "涨跌额", "change", "change_amount"),
+        change_pct=_number(raw, "涨跌幅", "change_pct", "change_percent", "涨跌幅"),
+        url=_stock_url(symbol),
+        updated_at=updated_at,
+        disclaimer=settings.market_disclaimer,
+    )
+
+
+def _map_cn_stock(raw: dict[str, object], updated_at: str) -> CnMarketStock | None:
+    symbol = _text(raw, "代码", "code", "symbol")
+    name = _text(raw, "名称", "name")
+    if not symbol or not name:
+        return None
+    return CnMarketStock(
+        symbol=symbol,
+        name=name,
+        price=_number(raw, "最新价", "收盘", "price", "current_price", "close", "最新"),
+        change=_number(raw, "涨跌额", "change", "change_amount"),
+        change_pct=_number(raw, "涨跌幅", "change_pct", "change_percent"),
+        volume=_text(raw, "成交量", "volume", default="-"),
+        turnover=_text(raw, "成交额", "turnover", "amount", default="-"),
+        url=_stock_url(symbol),
+        updated_at=updated_at,
+        disclaimer=settings.market_disclaimer,
+    )
+
+
+def _map_cn_stock_history(
+    raw: dict[str, object], symbol: str, name: str, updated_at: str
+) -> dict[str, object] | None:
+    price = _number(raw, "收盘", "close", "最新价", "price")
+    if price == 0:
+        return None
+    return {
+        "代码": symbol,
+        "名称": name,
+        "最新价": price,
+        "涨跌额": _number(raw, "涨跌额", "change", "change_amount"),
+        "涨跌幅": _number(raw, "涨跌幅", "change_pct", "change_percent"),
+        "成交量": _text(raw, "成交量", "volume", default="-"),
+        "成交额": _text(raw, "成交额", "turnover", "amount", default="-"),
+        "日期": _text(raw, "日期", "date", "trade_date", default=updated_at),
+    }
+
+
+def _fetch_recent_cn_stock_history(
+    stock_client: object, trade_date: str
+) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    method = cast(StockKlineClient, stock_client).get_kline
+    for symbol, name in _CN_HISTORY_SYMBOLS:
+        result = method(symbol, "daily", trade_date, trade_date, "qfq")
+        if not getattr(result, "success", False):
+            continue
+        rows = _iter_dict_items(getattr(result, "data", None))
+        if not rows:
+            continue
+        item = _map_cn_stock_history(rows[-1], symbol, name, trade_date)
+        if item is not None:
+            items.append(item)
+    return items
+
+
+def _map_cn_fund_flow(raw: dict[str, object]) -> CnFundFlow | None:
+    name = _text(raw, "名称", "name", "板块", "行业", "item")
+    if not name:
+        return None
+    value = _text(raw, "净流入", "主力净流入", "value", "amount", default="-")
+    change_pct = _number(raw, "涨跌幅", "change_pct", "change_percent")
+    direction = "in" if not str(value).startswith("-") else "out"
+    return CnFundFlow(name=name, value=value, change_pct=change_pct, direction=direction)
+
+
+def _map_cn_limit_stock(raw: dict[str, object]) -> CnLimitStock | None:
+    symbol = _text(raw, "代码", "code", "symbol")
+    name = _text(raw, "名称", "name")
+    if not symbol or not name:
+        return None
+    return CnLimitStock(
+        symbol=symbol,
+        name=name,
+        price=_number(raw, "最新价", "price", "current_price"),
+        change_pct=_number(raw, "涨跌幅", "change_pct", "change_percent"),
+        reason=_text(raw, "涨停原因", "跌停原因", "原因", "reason", default="市场异动"),
+        url=_stock_url(symbol),
+    )
+
+
+def _create_sdk_client() -> object:
+    try:
+        from seesea.sdk.feed.hot_client import HotTrendClient
+    except ImportError as exc:
+        raise SeeSeaError("SEESEA_SDK_UNAVAILABLE", "上游数据源暂不可用") from exc
+
+    client = HotTrendClient(max_concurrency=10)
+    result = client.connect()
+    if not getattr(result, "success", False):
+        raise SeeSeaError("SEESEA_SDK_UNAVAILABLE", "上游数据源暂不可用")
+    return client
+
+
+def _create_stock_sdk_client() -> object:
+    try:
+        from seesea.sdk.stock.client import StockClient
+    except ImportError as exc:
+        raise SeeSeaError("SEESEA_SDK_UNAVAILABLE", "上游数据源暂不可用") from exc
+
+    client = StockClient()
+    result = client.connect()
+    if not getattr(result, "success", False):
+        raise SeeSeaError("SEESEA_SDK_UNAVAILABLE", "上游数据源暂不可用")
+    return client
 
 
 def get_seesea_client(request: Request) -> SeeSeaClient:

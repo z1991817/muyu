@@ -51,6 +51,64 @@ class FakeSeeSeaClient:
             for meta in PLATFORMS.values()
         ]
 
+    async def fetch_cn_market(self) -> object:
+        from app.models.cn_market import (
+            CnFundFlow,
+            CnLimitStock,
+            CnMarketAnalysis,
+            CnMarketIndex,
+            CnMarketResponse,
+            CnMarketStock,
+        )
+
+        now = _now_iso()
+        return CnMarketResponse(
+            indices=[
+                CnMarketIndex(
+                    symbol="000001",
+                    name="上证指数",
+                    price=3120.5,
+                    change=12.3,
+                    change_pct=0.39,
+                    url="https://quote.eastmoney.com/000001.html",
+                    updated_at=now,
+                    disclaimer="仅供信息展示，不构成投资建议",
+                )
+            ],
+            stocks=[
+                CnMarketStock(
+                    symbol="600519",
+                    name="贵州茅台",
+                    price=1688.0,
+                    change=12.5,
+                    change_pct=0.75,
+                    volume="12.3万",
+                    turnover="20.8亿",
+                    url="https://quote.eastmoney.com/600519.html",
+                    updated_at=now,
+                    disclaimer="仅供信息展示，不构成投资建议",
+                )
+            ],
+            analysis=CnMarketAnalysis(
+                fund_flows=[
+                    CnFundFlow(name="沪深两市", value="128.6亿", change_pct=0.42, direction="in")
+                ],
+                limit_up=[
+                    CnLimitStock(
+                        symbol="000001",
+                        name="平安银行",
+                        price=12.8,
+                        change_pct=10.0,
+                        reason="金融活跃",
+                        url="https://quote.eastmoney.com/000001.html",
+                    )
+                ],
+                limit_down=[],
+            ),
+            stale=False,
+            updated_at=now,
+        )
+
     async def aclose(self) -> None:
         return None
 

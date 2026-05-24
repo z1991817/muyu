@@ -1,6 +1,7 @@
 ---
+import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
 import { fetchHome } from "../../lib/api";
-import { buildUiNewBoards, formatUiNewHeat, formatUiNewTime } from "../../lib/ui-new";
+import { buildUiNewBoards, formatUiNewTime, groupUiNewBoards } from "../../lib/ui-new";
 import type { HomeResponse } from "../../lib/types";
 
 const fallbackHome: HomeResponse = {
@@ -19,6 +20,9 @@ const fallbackHome: HomeResponse = {
 
 const data = await fetchHome().catch(() => fallbackHome);
 const boards = buildUiNewBoards(data);
+const boardGroups = groupUiNewBoards(boards);
+const hasBoards = boardGroups.length > 0;
+const clientApiBase = import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api";
 ---
 
 <!doctype html>
@@ -27,89 +31,160 @@ const boards = buildUiNewBoards(data);
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>热搜聚合平台首页预览</title>
+    <link rel="stylesheet" href="/ui-new/base.css" />
     <link rel="stylesheet" href="/ui-new/preview.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="topbar-inner">
-          <div class="brand">
-            <span class="brand-mark">M</span>
-          </div>
-
-          <nav class="nav" aria-label="主导航">
-            <a class="active" href="#">首页</a>
-            <a href="#">关于</a>
-          </nav>
-
-          <div class="topbar-spacer"></div>
-
-          <div class="theme-switcher">
-            <label for="theme-select">主题</label>
-            <select id="theme-select" aria-label="选择设计主题">
-              <option value="notion">Notion</option>
-              <option value="linear">Linear</option>
-              <option value="vercel">Vercel</option>
-              <option value="raycast">Raycast</option>
-              <option value="intercom">Intercom</option>
-              <option value="slack">Slack</option>
-              <option value="bmw">BMW</option>
-            </select>
-          </div>
-        </div>
-      </header>
+    <div class="app-shell" data-api-base={clientApiBase}>
+      <UiNewTopBar active="home" />
 
       <main>
-        <section class="platform-grid" aria-label="各平台热搜">
-          {boards.map((board) => (
-            <article class="platform-card">
-              <header class="platform-head">
-                <div class="platform-title">
-                  {board.iconUrl ? (
-                    <img class="platform-icon" src={board.iconUrl} alt="" aria-hidden="true" />
-                  ) : (
-                    <span class="platform-icon" aria-hidden="true"></span>
-                  )}
-                  <h2>{board.platformName}</h2>
+        {hasBoards ? (
+          <div class="category-stack">
+            {boardGroups.map((group) => (
+              <section class="category-section" data-category={group.id} aria-labelledby={`category-${group.id}`}>
+                <header class="category-head">
+                  <div>
+                    <h2 id={`category-${group.id}`}>{group.label}</h2>
+                  </div>
+                  <span>{group.boards.length} 个来源</span>
+                </header>
+                <div class="platform-grid">
+                  {group.boards.map((board) => (
+                    <article class="platform-card" data-platform={board.platform} data-platform-name={board.platformName}>
+                      <header class="platform-head">
+                        <div class="platform-title">
+                          {board.iconUrl ? (
+                            <img class="platform-icon" src={board.iconUrl} alt="" aria-hidden="true" />
+                          ) : (
+                            <span class="platform-icon" aria-hidden="true"></span>
+                          )}
+                          <h3>{board.platformName}</h3>
+                        </div>
+                        <button class="card-refresh" type="button" aria-label={`刷新${board.platformName}`}>
+                          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M15.75 6.75A6.5 6.5 0 1 0 16 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M15.75 3.75v3h-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </button>
+                      </header>
+                      <ol class="hot-list">
+                        {board.items.map((item, index) => {
+                          const rank = item.rank || index + 1;
+                          return (
+                            <li class="hot-item">
+                              <span class={`rank ${index < 3 ? "top" : ""}`}>{String(rank).padStart(2, "0")}</span>
+                              <div class="hot-topic">
+                                <a class="hot-title" href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                      <footer class="card-foot"><span>更新时间</span><strong data-updated-at>{formatUiNewTime(board.updatedAt)}</strong></footer>
+                    </article>
+                  ))}
                 </div>
-                <button class="card-refresh" type="button" aria-label={`刷新${board.platformName}`}>
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M21 12a9 9 0 0 1-15.12 6.62M3 12A9 9 0 0 1 18.12 5.38M21 5v5h-5M3 19v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </button>
-              </header>
-              <ol class="hot-list">
-                {board.items.slice(0, 10).map((item, index) => {
-                  const rank = item.rank || index + 1;
-                  return (
-                    <li class="hot-item">
-                      <span class={`rank ${index < 3 ? "top" : ""}`}>{String(rank).padStart(2, "0")}</span>
-                      <div class="hot-topic">
-                        <a class="hot-title" href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
-                      </div>
-                      <span class="heat">{formatUiNewHeat(item.heat, rank)}</span>
-                    </li>
-                  );
-                })}
-              </ol>
-              <footer class="card-foot"><span>更新时间</span><strong>{formatUiNewTime(board.updatedAt)}</strong></footer>
-            </article>
-          ))}
-        </section>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <section class="empty-state" aria-labelledby="empty-title">
+            <p class="empty-kicker">NO DATA</p>
+            <h1 id="empty-title">热榜数据暂时没有返回</h1>
+            <p>页面结构已经加载，但本地 API 服务当前不可用或没有返回热榜内容。启动后端后刷新页面即可看到平台列表。</p>
+          </section>
+        )}
       </main>
+      <div class="toast-host" aria-live="polite" aria-atomic="true"></div>
     </div>
     <script is:inline>
-      const themeSelect = document.querySelector("#theme-select");
-      const savedTheme = localStorage.getItem("trend-theme") || "notion";
+      const API_BASE = document.querySelector(".app-shell")?.dataset.apiBase || "/api";
 
-      function setTheme(theme) {
-        document.documentElement.dataset.theme = theme === "notion" ? "" : theme;
-        themeSelect.value = theme;
-        localStorage.setItem("trend-theme", theme);
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
       }
 
-      setTheme(savedTheme);
-      themeSelect.addEventListener("change", (event) => setTheme(event.target.value));
+      function formatTime(iso) {
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return "--:--";
+        return date.toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+      }
+
+      function renderItems(items) {
+        return items
+          .map((item, index) => {
+            const rank = item.rank || index + 1;
+            const rankClass = index < 3 ? "rank top" : "rank";
+            return `
+              <li class="hot-item">
+                <span class="${rankClass}">${String(rank).padStart(2, "0")}</span>
+                <div class="hot-topic">
+                  <a class="hot-title" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a>
+                </div>
+              </li>
+            `;
+          })
+          .join("");
+      }
+
+      function showToast(message, type = "ok") {
+        const host = document.querySelector(".toast-host");
+        if (!host) return;
+        const toast = document.createElement("div");
+        toast.className = `toast ${type === "error" ? "is-error" : ""}`;
+        toast.textContent = message;
+        host.append(toast);
+        requestAnimationFrame(() => toast.classList.add("is-visible"));
+        window.setTimeout(() => {
+          toast.classList.remove("is-visible");
+          toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+        }, 2200);
+      }
+
+      async function refreshCard(card) {
+        const platform = card.dataset.platform;
+        if (!platform || card.classList.contains("is-refreshing")) return;
+
+        const button = card.querySelector(".card-refresh");
+        const list = card.querySelector(".hot-list");
+        const updatedAt = card.querySelector("[data-updated-at]");
+        const platformName = card.dataset.platformName || "热榜";
+        if (!button || !list) return;
+
+        card.classList.add("is-refreshing");
+        button.disabled = true;
+
+        try {
+          const response = await fetch(`${API_BASE}/trends?platform=${encodeURIComponent(platform)}&refresh=true`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          const items = payload.items || [];
+          list.innerHTML = renderItems(items);
+          list.scrollTop = 0;
+          if (updatedAt) updatedAt.textContent = formatTime(payload.updatedAt);
+          showToast(`${platformName} 已刷新 · ${items.length} 条`);
+        } catch (error) {
+          console.error("refresh failed", error);
+          showToast(`${platformName} 刷新失败`, "error");
+        } finally {
+          card.classList.remove("is-refreshing");
+          button.disabled = false;
+        }
+      }
+
+      document.querySelectorAll(".platform-card").forEach((card) => {
+        card.querySelector(".card-refresh")?.addEventListener("click", () => refreshCard(card));
+      });
     </script>
   </body>
 </html>

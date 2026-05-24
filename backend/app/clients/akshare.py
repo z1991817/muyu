@@ -79,9 +79,9 @@ class AkShareClient:
                 raise AkShareError("EMPTY", "未解析到任何指数数据")
             return result
         except AkShareError:
-            return self._fallback_indices(status)
-        except Exception:
-            return self._fallback_indices(status)
+            raise
+        except Exception as exc:
+            raise AkShareError("MARKET_UPSTREAM", "指数行情接口暂不可用") from exc
 
     async def fetch_us_stocks(self) -> list[MarketStock]:
         status = _market_status()

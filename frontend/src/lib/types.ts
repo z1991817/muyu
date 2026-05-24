@@ -42,6 +42,60 @@ export interface MarketStock {
   disclaimer: string;
 }
 
+export interface CnMarketIndex {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePct: number;
+  url: string;
+  updatedAt: string;
+  disclaimer: string;
+}
+
+export interface CnMarketStock {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePct: number;
+  volume: string;
+  turnover: string;
+  url: string;
+  updatedAt: string;
+  disclaimer: string;
+}
+
+export interface CnFundFlow {
+  name: string;
+  value: string;
+  changePct: number;
+  direction: string;
+}
+
+export interface CnLimitStock {
+  symbol: string;
+  name: string;
+  price: number;
+  changePct: number;
+  reason: string;
+  url: string;
+}
+
+export interface CnMarketAnalysis {
+  fundFlows: CnFundFlow[];
+  limitUp: CnLimitStock[];
+  limitDown: CnLimitStock[];
+}
+
+export interface CnMarketResponse {
+  indices: CnMarketIndex[];
+  stocks: CnMarketStock[];
+  analysis: CnMarketAnalysis;
+  stale: boolean;
+  updatedAt: string;
+}
+
 export type RestDayKind = "holiday" | "weekend" | "workday";
 
 export interface CalendarInfo {

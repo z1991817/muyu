@@ -1,4 +1,11 @@
-﻿import type { HomeResponse, MarketResponse, SourcesResponse, StocksResponse, TrendsResponse } from "./types";
+﻿import type {
+  CnMarketResponse,
+  HomeResponse,
+  MarketResponse,
+  SourcesResponse,
+  StocksResponse,
+  TrendsResponse,
+} from "./types";
 
 const API_BASE =
   import.meta.env.PUBLIC_API_BASE ??
@@ -32,4 +39,8 @@ export async function fetchSources(): Promise<SourcesResponse> {
 
 export async function fetchUsStocks(): Promise<StocksResponse> {
   return requestJSON<StocksResponse>("/market/us/stocks");
+}
+
+export async function fetchCnMarket(): Promise<CnMarketResponse> {
+  return requestJSON<CnMarketResponse>("/market/cn");
 }

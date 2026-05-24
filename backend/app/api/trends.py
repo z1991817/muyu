@@ -28,11 +28,12 @@ async def list_trends(
     client: Annotated[SeeSeaClient, Depends(get_seesea_client)],
     cache: Annotated[SQLiteCache, Depends(get_cache)],
     platform: str | None = None,
+    refresh: bool = False,
 ) -> TrendsResponse:
     platforms = normalize_platforms(platform)
     cache_key = f"trends:multi:{','.join(platforms)}"
     cached = await get_cached_response(cache, cache_key, TrendsResponse)
-    if cached is not None:
+    if not refresh and cached is not None:
         response, is_expired = cached
         if not is_expired:
             return as_fresh(response)

@@ -1,0 +1,252 @@
+---
+import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
+import { fetchCnMarket } from "../../lib/api";
+import type { CnMarketIndex, CnMarketResponse, CnMarketStock } from "../../lib/types";
+
+const nowIso = new Date().toISOString();
+
+const fallbackMarket: CnMarketResponse = {
+  indices: [],
+  stocks: [],
+  analysis: {
+    fundFlows: [],
+    limitUp: [],
+    limitDown: [],
+  },
+  stale: true,
+  updatedAt: nowIso,
+};
+
+const marketData = await Promise.race([
+  fetchCnMarket(),
+  new Promise<CnMarketResponse>((resolve) => {
+    setTimeout(() => resolve(fallbackMarket), 1500);
+  }),
+]).catch(() => fallbackMarket);
+const indices = marketData.indices.slice(0, 3);
+const stocks = marketData.stocks.slice(0, 10);
+const fundFlows = marketData.analysis.fundFlows.slice(0, 6);
+const limitUp = marketData.analysis.limitUp.slice(0, 6);
+const limitDown = marketData.analysis.limitDown.slice(0, 6);
+const updatedAt = marketData.updatedAt || nowIso;
+const disclaimer =
+  indices[0]?.disclaimer || stocks[0]?.disclaimer || "仅供信息展示，不构成投资建议";
+
+function formatSigned(value: number): string {
+  const fixed = Math.abs(value).toFixed(2);
+  return value >= 0 ? `+${fixed}` : `-${fixed}`;
+}
+
+function formatPercent(value: number): string {
+  return `${formatSigned(value)}%`;
+}
+
+function formatPrice(value: number): string {
+  return value.toLocaleString("zh-CN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatUpdatedTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function movementClass(item: CnMarketIndex | CnMarketStock): string {
+  return item.changePct >= 0 ? "is-up" : "is-down";
+}
+
+function sparkPoints(seed: string, up: boolean): string {
+  const total = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const points = Array.from({ length: 8 }, (_, index) => {
+    const x = index * 18;
+    const wave = Math.sin((total + index * 17) / 11) * 9;
+    const slope = up ? 27 - index * 2.6 : 17 + index * 2.4;
+    const y = Math.max(8, Math.min(42, slope + wave));
+    return `${x},${y.toFixed(1)}`;
+  });
+  return points.join(" ");
+}
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="摸鱼热榜 ui-new A股行情页面，展示大盘指数、热门个股、资金流向、涨停板和跌停板。"
+    />
+    <title>A股 · 摸鱼热榜</title>
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/a-share.css" />
+  </head>
+  <body>
+    <div class="market-shell">
+      <UiNewTopBar active="a-share" />
+
+      <main class="market-layout">
+        <header class="market-hero">
+          <div class="hero-copy">
+            <p class="eyebrow">A-SHARE MARKET</p>
+            <h1>A股</h1>
+            <p>快速查看 A 股大盘、热门个股和市场情绪，适合开盘前后扫一眼。</p>
+          </div>
+          <div class="market-meta" aria-label="行情更新时间">
+            <span>更新 {formatUpdatedTime(updatedAt)}</span>
+          </div>
+        </header>
+
+        <section class="index-section" aria-labelledby="indices-title">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Major Indices</p>
+              <h2 id="indices-title">大盘数据</h2>
+            </div>
+          </div>
+
+          {indices.length > 0 ? (
+            <div class="index-grid">
+              {indices.map((item) => {
+                const up = item.changePct >= 0;
+                return (
+                  <a class:list={["index-card", movementClass(item)]} href={item.url} target="_blank" rel="noopener noreferrer">
+                    <div class="index-card-head">
+                      <span class="symbol">{item.symbol}</span>
+                      <span>{up ? "上涨" : "下跌"}</span>
+                    </div>
+                    <h3>{item.name}</h3>
+                    <div class="index-price">{formatPrice(item.price)}</div>
+                    <div class="delta-row">
+                      <span>{up ? "▲" : "▼"} {formatSigned(item.change)}</span>
+                      <strong>{formatPercent(item.changePct)}</strong>
+                    </div>
+                    <svg class="sparkline" viewBox="0 0 126 52" preserveAspectRatio="none" aria-hidden="true">
+                      <polyline points={sparkPoints(item.symbol, up)} />
+                    </svg>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div class="empty-panel">当前没有返回大盘数据。</div>
+          )}
+        </section>
+
+        <section class="stocks-section" aria-labelledby="stocks-title">
+          <div class="section-head compact">
+            <div>
+              <p class="section-kicker">Hot Stocks</p>
+              <h2 id="stocks-title">热门个股</h2>
+            </div>
+            <span>{stocks.length} / 10</span>
+          </div>
+
+          {stocks.length > 0 ? (
+            <div class="stock-table" role="table" aria-label="A股热门个股">
+              <div class="stock-row stock-row-head" role="row">
+                <span role="columnheader">股票</span>
+                <span role="columnheader">最新价</span>
+                <span role="columnheader">涨跌额</span>
+                <span role="columnheader">涨跌幅</span>
+                <span role="columnheader">成交额</span>
+                <span role="columnheader">成交量</span>
+              </div>
+              {stocks.map((item) => {
+                const up = item.changePct >= 0;
+                return (
+                  <a class:list={["stock-row", movementClass(item)]} href={item.url} target="_blank" rel="noopener noreferrer" role="row">
+                    <span class="stock-name" role="cell">
+                      <strong>{item.symbol}</strong>
+                      <small>{item.name}</small>
+                    </span>
+                <span class="stock-price" role="cell" data-label="最新价">{formatPrice(item.price)}</span>
+                <span class="stock-delta" role="cell" data-label="涨跌额">{formatSigned(item.change)}</span>
+                <span class="stock-change" role="cell" data-label="涨跌幅">
+                  {up ? "▲" : "▼"} {formatPercent(item.changePct)}
+                </span>
+                <span class="stock-turnover" role="cell" data-label="成交额">{item.turnover}</span>
+                <span class="stock-volume" role="cell" data-label="成交量">{item.volume}</span>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div class="empty-panel">当前没有返回个股行情。</div>
+          )}
+        </section>
+
+        <section class="analysis-section" aria-labelledby="analysis-title">
+          <div class="section-head compact">
+            <div>
+              <p class="section-kicker">Market Analysis</p>
+              <h2 id="analysis-title">市场分析</h2>
+            </div>
+          </div>
+
+          <div class="analysis-grid">
+            <article class="analysis-card">
+              <div class="analysis-card-head">
+                <h3>资金流向</h3>
+                <span>{fundFlows.length}</span>
+              </div>
+              <div class="analysis-list">
+                {fundFlows.length > 0 ? fundFlows.map((item) => (
+                  <div class:list={["analysis-row", item.direction === "out" ? "is-down" : "is-up"]}>
+                    <span>{item.name}</span>
+                    <strong>{item.value}</strong>
+                    <small>{formatPercent(item.changePct)}</small>
+                  </div>
+                )) : <p>暂无资金流向数据。</p>}
+              </div>
+            </article>
+
+            <article class="analysis-card">
+              <div class="analysis-card-head">
+                <h3>涨停板</h3>
+                <span>{limitUp.length}</span>
+              </div>
+              <div class="analysis-list">
+                {limitUp.length > 0 ? limitUp.map((item) => (
+                  <a class="analysis-row is-up" href={item.url} target="_blank" rel="noopener noreferrer">
+                    <span>{item.name}</span>
+                    <strong>{formatPrice(item.price)}</strong>
+                    <small>{item.reason}</small>
+                  </a>
+                )) : <p>暂无涨停板数据。</p>}
+              </div>
+            </article>
+
+            <article class="analysis-card">
+              <div class="analysis-card-head">
+                <h3>跌停板</h3>
+                <span>{limitDown.length}</span>
+              </div>
+              <div class="analysis-list">
+                {limitDown.length > 0 ? limitDown.map((item) => (
+                  <a class="analysis-row is-down" href={item.url} target="_blank" rel="noopener noreferrer">
+                    <span>{item.name}</span>
+                    <strong>{formatPrice(item.price)}</strong>
+                    <small>{item.reason}</small>
+                  </a>
+                )) : <p>暂无跌停板数据。</p>}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <footer class="market-foot">
+          <span>行情有延迟，仅供日常查看</span>
+          <strong>{disclaimer}</strong>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

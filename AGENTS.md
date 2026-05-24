@@ -14,7 +14,7 @@
 
 1. **本项目是公开榜单链接聚合器**，不是新闻站、不是资讯站。永远只保留：标题、原站链接、平台、排名、热度、更新时间。**禁止**抓正文、缓存图片、做 AI 摘要、做评论区。
 2. **SeeSea 是内网数据源**，对外永远不暴露。前端永远不直连 SeeSea，必须经 FastAPI 一层清洗与字段映射。
-3. **设计上 Riso/Zine 风格已经定稿**，见 [doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)。所有前端 UI 必须沿用该规范，禁止重选风格、禁止引入额外 UI 库。
+3. **设计规范按路由分流**：常规前端 UI 沿用 [doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)；所有 `/ui-new/*` 页面是新 UI 设计线，必须沿用 [doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)，禁止在两套视觉之间混用。
 
 ---
 
@@ -23,10 +23,10 @@
 ### 1.1 前端
 - ✅ 必须用：Astro 5、TypeScript、原生 CSS（或 CSS Modules / Tailwind v4）。
 - ✅ 前端 TypeScript 开发必须遵循 `.agents/skills/typescript-advanced-types/SKILL.md`（如与本仓库规范冲突，以本文件与 `frontend/AGENTS.md` 为准）。
-- ✅ 字体：Google Fonts 加载 Bagel Fat One / Fraunces / Ma Shan Zheng / Space Mono / ZCOOL KuaiLe，**不许换字体**。
-- ✅ 颜色：必须使用 `doc/摸鱼热榜-趣味Riso风格设计规范.md` §1 中的 CSS Variables（`--paper`、`--ink`、`--pink` 等），**禁止自创近似色**。
+- ✅ 字体：常规页面 Google Fonts 加载 Bagel Fat One / Fraunces / Ma Shan Zheng / Space Mono / ZCOOL KuaiLe，**不许换字体**；`/ui-new/*` 使用 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md` 中的 Geist / Inter / system sans 字体栈，**不要加载 Riso 五套字体**。
+- ✅ 颜色：常规页面必须使用 `doc/摸鱼热榜-趣味Riso风格设计规范.md` §1 中的 CSS Variables（`--paper`、`--ink`、`--pink` 等），**禁止自创近似色**；`/ui-new/*` 使用 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md` 的黑白灰 token。
 - ❌ 禁止引入：Next.js、Nuxt、Vue、React Router、Remix、SvelteKit、Vite-only SPA、Element Plus、Ant Design、Material UI、Chakra UI、DaisyUI、shadcn/ui、Bootstrap。
-- ❌ 禁止在 CSS 里出现：纯白底（`#FFFFFF` / `#FFF` / `white` 作为页面/卡片底色）、带 blur 的 `box-shadow`、线性/径向渐变填充卡片（仅 body 底层氛围渐变允许）、`transform: none` 强对齐（移动端断点例外）。
+- ❌ 常规页面禁止在 CSS 里出现：纯白底（`#FFFFFF` / `#FFF` / `white` 作为页面/卡片底色）、带 blur 的 `box-shadow`、线性/径向渐变填充卡片（仅 body 底层氛围渐变允许）、`transform: none` 强对齐（移动端断点例外）。`/ui-new/*` 按 Vercel 风格规范执行，允许纯白、轻 blur、轻阴影和正常对齐。
 - ❌ 禁止纯客户端首屏：热榜内容必须 SSR 输出真实 HTML，再用岛屿做局部刷新。SEO 是硬指标。
 
 ### 1.2 后端
@@ -48,11 +48,30 @@
 
 ## 2. 设计规范红线
 
-主源：**[doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)**。
+主源按文件路径选择：
 
-**写任何 `.astro` / `.css` / `.tsx` 前必须先读它，不要凭印象写。**
+- 常规页面：**[doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)**。
+- `/ui-new/*` 页面：**[doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)**。
 
-硬约束摘要（违反即返工）：
+**写任何 `.astro` / `.css` / `.tsx` 前必须先读对应设计规范，不要凭印象写。**
+
+### 2.0 `/ui-new/*` 新 UI 设计线
+
+`/ui-new/*` 是新的 Vercel-like 简约 UI 设计线，对应文件包括：
+
+- `frontend/src/pages/ui-new/**/*.astro`
+- `frontend/public/ui-new/**/*.css`
+
+该目录下所有页面及其专属样式**不需要遵守 Riso/Zine 设计规范**，必须遵守 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md`。允许使用独立字体、颜色、圆角、轻阴影、对齐方式、卡片背景与主题系统；也不要求使用 Riso 的噪点、网点、硬阴影、错位旋转、平台色或 5 套字体。
+
+但该例外只豁免视觉风格，不豁免以下规则：
+
+- 仍必须使用 Astro 5 + TypeScript + 原生 CSS，不得引入额外 UI 框架或未确认依赖。
+- 热榜内容仍必须 SSR 输出真实 HTML，链接仍必须是原站真实 `<a>`。
+- 调后端仍必须走 `src/lib/api.ts` 或页面内已明确用于预览的 FastAPI API base，不得直连 SeeSea。
+- 数据字段、安全合规、免责声明、缓存兜底、SeeSea 不透传等边界仍按本文件执行。
+
+常规 Riso 页面硬约束摘要（违反即返工）：
 
 | 维度 | 规则 |
 |---|---|
@@ -67,7 +86,7 @@
 | 单卡 sticker | ≤1 个 |
 | body 必加 | 噪点滤镜 `::before` + 半色调网点 `::after` |
 
-新增页面 → 在 prompt / commit message 里显式写"沿用《摸鱼热榜-趣味Riso风格设计规范》"。
+新增页面 → 常规页面在 prompt / commit message 里显式写"沿用《摸鱼热榜-趣味Riso风格设计规范》"；`/ui-new/*` 页面显式写"沿用《摸鱼热榜-ui-new-Vercel风格设计规范》"。
 
 ---
 
@@ -80,6 +99,7 @@ moyu/
 ├── README.md
 ├── doc/                      ← 所有设计与技术文档
 │   ├── 摸鱼热榜-趣味Riso风格设计规范.md
+│   ├── 摸鱼热榜-ui-new-Vercel风格设计规范.md
 │   ├── 摸鱼热榜首页设计规范.md
 │   └── 摸鱼热榜技术选型方案.md
 ├── demo*.html                ← 设计稿历史快照（**只读**，不要改）
@@ -130,7 +150,7 @@ moyu/
 
 ### 4.1 通用
 - 文件名：前端 kebab-case (`hot-board.astro`)、后端 snake_case (`seesea_client.py`)。
-- 平台 ID 使用 SeeSea 一致的小写串：`weibo / zhihu / bilibili-hot-search / douyin / v2ex / github-trending-today / hupu / tieba / douban`。新增平台必须在 `doc/摸鱼热榜-趣味Riso风格设计规范.md` §5.4 配色表里也增加映射。
+- 平台 ID 使用 SeeSea 一致的小写串：`weibo / zhihu / bilibili-hot-search / douyin / v2ex / github-trending-today / hupu / tieba / douban`。新增平台必须在常规 Riso 页面平台映射里补充；`/ui-new/*` 页面只使用 `frontend/src/lib/ui-new.ts` 的新 UI meta，不需要补 Riso 平台色。
 - 时间字段统一使用 ISO 8601 + 时区（`2026-05-18T10:00:00+08:00`），**禁止**用毫秒时间戳。
 - 注释默认不写。只在「为什么」非显然时写一行；禁止写「这里做了什么」式注释。
 
@@ -166,16 +186,18 @@ moyu/
 1. **开工前**：读 `AGENTS.md`、对应子目录的 `AGENTS.md`、`doc/` 下相关规范。
 2. **动手前**：列 todo / plan；涉及结构调整或新依赖，先和用户对齐。
 3. **写代码**：优先编辑现存文件，不要新建重复模块；不要写未被要求的功能；不要预防性加 `try/except` 兜不存在的异常。
-4. **本地校验**：
+4. **公共层优先检查**：修 UI / 交互问题时，不能只修当前页面现象，必须判断它是否属于跨页面能力或规范缺口。主题 token、暗色变量、导航、字体、基础 reset、按钮/输入基础态、页面宽度与间距体系、通用交互逻辑，默认应进入公共组件、公共 CSS 或设计规范；如果新增一个同类页面会复制这段代码，就必须优先抽公共层或补规范。
+5. **本地校验**：
    - 前端：`pnpm astro check`（或 `npm run check`）+ `pnpm build`，要求 0 error。
    - 后端：`ruff check . && ruff format --check . && pyright`（或 `mypy app`），要求 0 error。
    - 测试：`pytest -q`（如已有），新功能至少补 happy path。
-5. **提交前**：
+6. **提交前**：
    - 检查是否触发本文件任一 ❌；
    - 检查是否引入了未列入红线允许的依赖；
    - 检查 SeeSea 字段是否经过 `SeeSeaClient` 映射，未透传到前端；
-   - 检查新 UI 是否符合 Riso 设计规范（旋转、阴影、字体、平台色）。
-6. **commit message**：使用 conventional commits（`feat(frontend): ...` / `fix(backend): ...` / `docs: ...` / `chore(ops): ...`）。
+   - 检查本次问题是否只是局部现象；如属于公共层问题，必须同步抽公共能力或更新规范，避免下次靠用户再次提醒。
+   - 检查常规 UI 是否符合 Riso 设计规范（旋转、阴影、字体、平台色）；检查 `/ui-new/*` 是否符合 Vercel 风格设计规范（黑白灰 token、1px hairline、小圆角、轻阴影、Geist/system 字体、简约信息密度）。
+7. **commit message**：使用 conventional commits（`feat(frontend): ...` / `fix(backend): ...` / `docs: ...` / `chore(ops): ...`）。
 
 ---
 

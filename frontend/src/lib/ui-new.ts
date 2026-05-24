@@ -10,6 +10,18 @@ export type UiNewBoard = {
   themeColor: string;
 };
 
+export type UiNewCategoryId =
+  | "frequent"
+  | "general"
+  | "tech"
+  | "community";
+
+export type UiNewBoardGroup = {
+  id: UiNewCategoryId;
+  label: string;
+  boards: UiNewBoard[];
+};
+
 type UiNewMeta = {
   iconUrl: string | null;
   desc: string;
@@ -31,6 +43,8 @@ const PLATFORM_ORDER = [
   "toutiao",
   "kuaishou",
   "thepaper",
+  "tencent-hot",
+  "ifeng",
   "36kr-renqi",
   "ithome",
   "wallstreetcn-hot",
@@ -41,8 +55,6 @@ const PLATFORM_ORDER = [
   "gelonghui",
   "xueqiu-hotstock",
   "nowcoder",
-  "ifeng",
-  "tencent-hot",
   "hackernews",
   "producthunt",
   "freebuf",
@@ -84,6 +96,53 @@ const PLATFORM_META: Record<string, UiNewMeta> = {
 
 const DEFAULT_THEME_COLOR = "#10B981";
 
+const CATEGORY_ORDER: UiNewCategoryId[] = [
+  "frequent",
+  "tech",
+  "community",
+  "general",
+];
+
+const CATEGORY_META: Record<UiNewCategoryId, Pick<UiNewBoardGroup, "label">> = {
+  frequent: { label: "综合" },
+  general: { label: "资讯财经" },
+  tech: { label: "科技" },
+  community: { label: "社区" },
+};
+
+const PLATFORM_CATEGORY: Record<string, UiNewCategoryId> = {
+  weibo: "frequent",
+  zhihu: "frequent",
+  douyin: "frequent",
+  "bilibili-hot-search": "frequent",
+  baidu: "frequent",
+  toutiao: "frequent",
+  douban: "frequent",
+  thepaper: "frequent",
+  ifeng: "general",
+  kuaishou: "community",
+  "tencent-hot": "general",
+  steam: "community",
+  juejin: "tech",
+  "github-trending-today": "tech",
+  v2ex: "tech",
+  ithome: "tech",
+  sspai: "tech",
+  coolapk: "tech",
+  nowcoder: "tech",
+  hackernews: "tech",
+  producthunt: "tech",
+  freebuf: "tech",
+  "36kr-renqi": "general",
+  "wallstreetcn-hot": "general",
+  "cls-hot": "general",
+  jin10: "general",
+  gelonghui: "general",
+  "xueqiu-hotstock": "general",
+  hupu: "community",
+  tieba: "community",
+};
+
 export function buildUiNewBoards(data: HomeResponse): UiNewBoard[] {
   const grouped = data.trends.reduce<Record<string, Trend[]>>((acc, item) => {
     const items = acc[item.platform] ?? [];
@@ -120,6 +179,28 @@ export function buildUiNewBoards(data: HomeResponse): UiNewBoard[] {
     }));
 
   return [...known, ...rest];
+}
+
+export function groupUiNewBoards(boards: UiNewBoard[]): UiNewBoardGroup[] {
+  const grouped = boards.reduce<Record<UiNewCategoryId, UiNewBoard[]>>(
+    (acc, board) => {
+      const category = PLATFORM_CATEGORY[board.platform] ?? "general";
+      acc[category].push(board);
+      return acc;
+    },
+    {
+      frequent: [],
+      general: [],
+      tech: [],
+      community: [],
+    }
+  );
+
+  return CATEGORY_ORDER.flatMap((id) => {
+    const categoryBoards = grouped[id];
+    if (categoryBoards.length === 0) return [];
+    return [{ id, ...CATEGORY_META[id], boards: categoryBoards }];
+  });
 }
 
 export function formatUiNewTime(iso: string): string {
