@@ -21,6 +21,7 @@ services:
     image: moyu-api:latest
     environment:
       SEESEA_BASE_URL: http://seesea:8080
+      SEESEA_STOCK_SDK_FALLBACK_ENABLED: ${SEESEA_STOCK_SDK_FALLBACK_ENABLED:-true}
       UMAMI_API_BASE: ${UMAMI_API_BASE:-https://api.umami.is/v1}
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-5ed62d5d-3114-49cb-85b7-491c0cf277c1}
       UMAMI_API_KEY: ${UMAMI_API_KEY:-}

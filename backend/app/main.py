@@ -27,7 +27,9 @@ async def lifespan(app: FastAPI):
     await cache.init()
 
     app.state.cache = cache
-    app.state.seesea_client = SeeSeaClient()
+    app.state.seesea_client = SeeSeaClient(
+        enable_stock_sdk_fallback=settings.seesea_stock_sdk_fallback_enabled
+    )
     app.state.akshare_client = AkShareClient()
     app.state.umami_client = UmamiClient()
     app.state.default_platforms = settings.seesea_default_platforms
