@@ -473,7 +473,15 @@ a.stock-row:hover {
 }
 
 .analysis-list {
+  --analysis-row-height: 52px;
+  --analysis-visible-rows: 10;
+
   display: grid;
+  max-height: calc(var(--analysis-row-height) * var(--analysis-visible-rows));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .analysis-list p {
@@ -488,7 +496,7 @@ a.stock-row:hover {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px 12px;
   align-items: center;
-  min-height: 52px;
+  min-height: var(--analysis-row-height);
   border-top: 1px solid var(--border-light);
   color: var(--text-primary);
   padding: 9px 14px;

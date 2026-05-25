@@ -259,6 +259,125 @@ async def test_market_cn_stock_sdk_fallback_is_disabled_by_default() -> None:
 
 
 @pytest.mark.asyncio
+async def test_market_cn_limit_pools_use_akshare_fallback(
+    client: AsyncClient, test_app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.clients.seesea import SeeSeaClient
+    from app.scheduler import _refresh_cn_market
+
+    class EmptyLiveTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=[], request=request)
+
+    class Result:
+        def __init__(self, data: object, *, success: bool = True) -> None:
+            self.success = success
+            self.data = data
+
+    class RecentTradeStockClient:
+        def get_index_list(self) -> Result:
+            return Result(
+                [
+                    {
+                        "代码": "000001",
+                        "名称": "上证指数",
+                        "最新价": 3120.5,
+                        "涨跌额": 12.3,
+                        "涨跌幅": 0.39,
+                    }
+                ]
+            )
+
+        def get_kline(
+            self,
+            symbol: str,
+            period: str = "daily",
+            start_date: str | None = None,
+            end_date: str | None = None,
+            adjust: str = "qfq",
+        ) -> Result:
+            return Result(
+                [
+                    {
+                        "日期": start_date,
+                        "收盘": 1688.0,
+                        "涨跌额": 12.5,
+                        "涨跌幅": 0.75,
+                        "成交量": "12.3万",
+                        "成交额": "20.8亿",
+                    }
+                ]
+            )
+
+        def get_market_fund_flow(self) -> Result:
+            return Result(
+                [
+                    {
+                        "日期": "2026-05-22",
+                        "主力净流入-净额": 100.0,
+                        "主力净流入-净占比": 1.2,
+                    }
+                ]
+            )
+
+        def get_zt_pool(self, date: str | None = None) -> Result:
+            return Result([], success=False)
+
+        def get_dt_pool(self, date: str | None = None) -> Result:
+            return Result([], success=False)
+
+    def fake_run_akshare_stock_sync(method: str, *args: object) -> object:
+        if method == "stock_zt_pool_em":
+            return [
+                {
+                    "代码": f"60{index:04d}",
+                    "名称": f"涨停{index}",
+                    "最新价": 10 + index,
+                    "涨跌幅": 10.0,
+                }
+                for index in range(25)
+            ]
+        if method == "stock_zt_pool_dtgc_em":
+            return [
+                {
+                    "代码": f"00{index:04d}",
+                    "名称": f"跌停{index}",
+                    "最新价": 8 + index,
+                    "涨跌幅": -10.0,
+                }
+                for index in range(5)
+            ]
+        raise AssertionError(f"unexpected AkShare method: {method}")
+
+    monkeypatch.setattr(
+        "app.clients.seesea._run_akshare_stock_sync",
+        fake_run_akshare_stock_sync,
+    )
+
+    seesea = SeeSeaClient(base_url="http://test-seesea", enable_stock_sdk_fallback=True)
+    await seesea._client.aclose()
+    seesea._client = httpx.AsyncClient(
+        base_url="http://test-seesea",
+        transport=EmptyLiveTransport(),
+    )
+    seesea._stock_sdk_client = RecentTradeStockClient()
+    test_app.state.seesea_client = seesea
+
+    await _refresh_cn_market(seesea, test_app.state.cache)
+    response = await client.get("/api/market/cn")
+    assert response.status_code == 200
+
+    payload = response.json()
+    assert payload["stale"] is False
+    assert len(payload["analysis"]["limitUp"]) == 20
+    assert len(payload["analysis"]["limitDown"]) == 5
+    assert payload["analysis"]["limitUp"][0]["reason"] == "市场异动"
+    assert payload["analysis"]["limitDown"][0]["changePct"] == -10.0
+
+    await seesea.aclose()
+
+
+@pytest.mark.asyncio
 async def test_hot_sdk_fallback_is_disabled_by_default() -> None:
     from app.clients.seesea import SeeSeaClient, SeeSeaError
 

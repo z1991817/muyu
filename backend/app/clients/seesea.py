@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from typing import Protocol, cast
+from typing import Protocol, cast, runtime_checkable
 
 import httpx
 from fastapi import Request
@@ -26,7 +26,7 @@ from app.platforms import get_platform_name
 _CN_INDEX_NAMES = {"上证指数", "沪深300", "中证500", "科创50"}
 _CN_INDEX_SYMBOLS = {"000001", "000300", "000905", "000688"}
 _CN_MARKET_STOCK_LIMIT = 20
-_CN_LIMIT_LIST_LIMIT = 8
+_CN_LIMIT_LIST_LIMIT = 20
 _CN_HISTORY_SYMBOLS = (
     ("600519", "贵州茅台"),
     ("300750", "宁德时代"),
@@ -69,6 +69,11 @@ class StockKlineClient(Protocol):
         end_date: str,
         adjust: str,
     ) -> object: ...
+
+
+@runtime_checkable
+class TabularPayload(Protocol):
+    def to_dict(self, orient: str) -> object: ...
 
 
 class SeeSeaError(Exception):
@@ -174,6 +179,8 @@ class SeeSeaClient:
                 fallback_params={"type": "zt", "date": last_trade_date},
                 fallback_sdk_method="get_zt_pool",
                 fallback_sdk_args=(last_trade_date,),
+                akshare_fallback="stock_zt_pool_em",
+                akshare_args=(last_trade_date,),
             ),
             self._fetch_stock_data(
                 "/api/stock/ranking",
@@ -182,6 +189,8 @@ class SeeSeaClient:
                 fallback_params={"type": "dt", "date": last_trade_date},
                 fallback_sdk_method="get_dt_pool",
                 fallback_sdk_args=(last_trade_date,),
+                akshare_fallback="stock_zt_pool_dtgc_em",
+                akshare_args=(last_trade_date,),
             ),
         )
 
@@ -230,8 +239,16 @@ class SeeSeaClient:
 
         indices_raw = await self._run_stock_sdk("get_index_list")
         quotes_raw = await self._run_stock_sdk("_fetch_recent_cn_stock_history", trade_date)
-        limit_up_raw = await self._run_stock_sdk("get_zt_pool", trade_date)
-        limit_down_raw = await self._run_stock_sdk("get_dt_pool", trade_date)
+        limit_up_raw = await self._fetch_limit_pool_snapshot(
+            "get_zt_pool",
+            "stock_zt_pool_em",
+            trade_date,
+        )
+        limit_down_raw = await self._fetch_limit_pool_snapshot(
+            "get_dt_pool",
+            "stock_zt_pool_dtgc_em",
+            trade_date,
+        )
 
         indices = _map_primary_cn_indices(_iter_dict_items(indices_raw), now)
         stocks = [_map_cn_stock(item, now) for item in _iter_dict_items(quotes_raw)]
@@ -286,6 +303,8 @@ class SeeSeaClient:
         fallback_params: dict[str, str] | None = None,
         fallback_sdk_method: str | None = None,
         fallback_sdk_args: tuple[object, ...] = (),
+        akshare_fallback: str | None = None,
+        akshare_args: tuple[object, ...] = (),
     ) -> object:
         try:
             payload = await self._get_json(path, params)
@@ -312,11 +331,37 @@ class SeeSeaClient:
 
         if self._enable_stock_sdk_fallback and fallback_sdk_method is not None:
             try:
-                return await self._run_stock_sdk(fallback_sdk_method, *fallback_sdk_args)
+                payload = await self._run_stock_sdk(fallback_sdk_method, *fallback_sdk_args)
+                if _iter_dict_items(payload):
+                    return payload
+            except SeeSeaError:
+                pass
+
+        if self._enable_stock_sdk_fallback and akshare_fallback is not None:
+            try:
+                return await self._run_akshare_stock(akshare_fallback, *akshare_args)
             except SeeSeaError:
                 return []
 
         return []
+
+    async def _fetch_limit_pool_snapshot(
+        self,
+        sdk_method: str,
+        akshare_method: str,
+        trade_date: str,
+    ) -> object:
+        try:
+            payload = await self._run_stock_sdk(sdk_method, trade_date)
+            if _iter_dict_items(payload):
+                return payload
+        except SeeSeaError:
+            pass
+
+        try:
+            return await self._run_akshare_stock(akshare_method, trade_date)
+        except SeeSeaError:
+            return []
 
     async def _run_sdk(self, method: str, *args: object) -> object:
         try:
@@ -360,6 +405,12 @@ class SeeSeaClient:
         if data is None:
             raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
         return data
+
+    async def _run_akshare_stock(self, method: str, *args: object) -> object:
+        try:
+            return await asyncio.to_thread(_run_akshare_stock_sync, method, *args)
+        except Exception as exc:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
 
     def _parse_multi_payload(self, payload: object) -> list[Trend]:
         groups = []
@@ -606,6 +657,17 @@ def _call_stock_sdk_method(method: Callable[..., object], *args: object) -> obje
         if getattr(result, "success", False):
             return result
     return result
+
+
+def _run_akshare_stock_sync(method: str, *args: object) -> object:
+    import importlib
+
+    akshare = importlib.import_module("akshare")
+    akshare_method = cast(Callable[..., object], getattr(akshare, method))
+    payload = akshare_method(*args)
+    if isinstance(payload, TabularPayload):
+        return payload.to_dict("records")
+    return payload
 
 
 def _map_cn_fund_flows(items: list[dict[str, object]]) -> list[CnFundFlow]:
