@@ -1,6 +1,6 @@
 # 摸鱼热榜 · ui-new Vercel 风格设计规范
 
-> 适用范围：所有 `/ui-new/*` 页面及其专属样式文件。
+> 适用范围：默认首页 `/`、所有 `/ui-new/*` 页面及其专属样式文件。
 >
 > 参考来源：[getdesign.md Vercel DESIGN.md](https://getdesign.md/vercel/design-md) 对 Vercel 公开界面的独立分析：Frontend deployment、Black and white precision、Geist font。
 > 本规范不是 Vercel 官方设计系统，也不是照搬品牌资产；它只作为本项目新 UI 的设计语言约束。
@@ -9,7 +9,7 @@
 
 ## 0. 设计立场
 
-`/ui-new/*` 是摸鱼热榜的新 UI 探索线，**不遵守 Riso/Zine 设计规范**。
+默认首页 `/` 与 `/ui-new/*` 是摸鱼热榜的“简约版”UI 设计线，**不遵守 Riso/Zine 设计规范**。
 
 视觉方向：**Vercel-like developer dashboard**。
 
@@ -24,17 +24,18 @@
 - Geist / system sans
 - 亮暗双主题
 
-这套 UI 的目标不是“有趣拼贴”，而是让热榜像一个开发者控制台：扫描快、边界清楚、干净、不乱。
+这套 UI 的目标不是“有趣拼贴”，而是让热榜像一个开发者控制台：扫描快、边界清楚、干净、不乱。用户仍可切换到 `/bold` 的“大胆版”Riso 旧 UI。
 
 ---
 
 ## 1. 设计 Token
 
-`/ui-new/*` 页面不走 `src/styles/global.css` 的 Riso 变量，统一使用公共基础样式：
+简约版页面不走 `src/styles/global.css` 的 Riso 变量，统一使用公共基础样式：
 
 - 全局 token、暗色 token、基础 reset 必须维护在 `frontend/public/ui-new/base.css`。
 - 页面必须先引入 `/ui-new/base.css`，再引入自己的页面 CSS。
 - 页面专属 CSS 只写布局、组件细节和必要的局部变量；不要重复定义 `:root`、`[data-skin="dim"]`、`body` 等全局主题规则。
+- 默认首页 `/` 复用 `/ui-new/base.css` 与 `/ui-new/preview.css`。新增首页级简约组件时，优先抽公共样式，不要把同类规则散落到单页。
 
 当前亮色 token：
 
@@ -95,7 +96,7 @@
 }
 ```
 
-允许 `#ffffff`、`#fafafa`、blur 阴影、`transform: none`；这些在 `/ui-new/*` 中不是违规项。
+允许 `#ffffff`、`#fafafa`、blur 阴影、`transform: none`；这些在简约版中不是违规项。
 
 ---
 
@@ -127,7 +128,7 @@
 
 ### 顶栏
 
-- 所有 `/ui-new/*` 页面必须使用公共组件 `frontend/src/components/ui-new/UiNewTopBar.astro`，禁止在页面内重复手写导航结构。
+- 默认首页 `/` 与所有 `/ui-new/*` 页面必须使用公共组件 `frontend/src/components/ui-new/UiNewTopBar.astro`，禁止在页面内重复手写导航结构。
 - 页面通过 `active="home"` / `active="about"` 等参数声明当前导航项。
 - 顶栏 sticky。
 - 背景使用半透明 `--topbar-bg` + `backdrop-filter: blur(12px)`。
@@ -163,16 +164,25 @@
 - 背景跟随 `--surface-elevated`。
 - 错误态只用 `--danger`，不要大面积红色。
 
+### 版本切换提示
+
+- 默认首页 `/` 在顶栏下方保留一条细线提示：“本站 UI 已修改为简约版。”并提供“大胆版”链接。
+- 版本切换提示属于信息栏，不是营销 banner；使用 1px hairline、`var(--surface)` 背景、小字号、低对比度文字。
+- 点击“大胆版”必须写入 `localStorage.moyu-ui-version = "bold"`；大胆版中的“简约版”入口必须写入 `simple`。
+- 根路径 `/` 读取 `moyu-ui-version`：`bold` 时跳转 `/bold`，`simple` 或无值时显示简约版。
+
 ---
 
 ## 5. 主题系统
 
-`/ui-new/*` 推荐支持亮暗主题：
+简约版推荐支持亮暗主题：
 
 - 默认亮色主题命名为 `vercel`。
 - 暗色主题命名为 `dim`。
 - 使用 `document.documentElement.dataset.skin = "dim"` 切换。
 - 用 `localStorage` 保存主题时，key 沿用 `trend-skin`，避免多个 ui-new 页面状态割裂。
+- 没有 `trend-skin` 缓存时，默认使用 `dim` 暗色主题。
+- 默认首页 `/` 应在 CSS 加载前尽早设置 `document.documentElement.dataset.skin`，避免亮色闪烁后再切暗色。
 - 暗色变量只在 `frontend/public/ui-new/base.css` 定义；新增页面不需要、也不应该单独配置一份暗色变量。
 - 切换按钮必须有 `aria-label` 和 `title`。
 
@@ -194,7 +204,7 @@
 
 ## 7. 自检清单
 
-新增或修改 `/ui-new/*` 页面时检查：
+新增或修改简约版页面时检查：
 
 - [ ] 页面使用 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md`，不是 Riso/Zine 规范。
 - [ ] 已判断本次 UI / 交互问题是否属于公共层能力；如果新增同类页面会复制代码，必须抽到公共组件、公共 CSS 或本规范。
@@ -206,6 +216,8 @@
 - [ ] 使用 1px hairline 边框、小圆角、轻阴影。
 - [ ] 没有胶带、贴纸、印章、半色调噪点、手绘鱼等 Riso 装饰。
 - [ ] 页面信息密度适中，视觉安静，移动端无横向溢出。
+- [ ] 默认主题无缓存时为 `dim`，主题缓存 key 为 `trend-skin`。
+- [ ] 版本切换缓存 key 为 `moyu-ui-version`，值只允许 `simple` / `bold`。
 - [ ] SSR 输出真实内容和真实链接。
 - [ ] `pnpm check` 和 `pnpm build` 通过。
 - [ ] UI 改动已在浏览器验证。

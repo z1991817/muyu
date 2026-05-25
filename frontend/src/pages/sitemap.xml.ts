@@ -3,6 +3,9 @@ import { SITE_URL } from "../lib/seo";
 const staticRoutes = [
   { path: "/", changefreq: "daily", priority: "1.0" },
   { path: "/about", changefreq: "monthly", priority: "0.5" },
+  { path: "/ui-new/a-share", changefreq: "daily", priority: "0.8" },
+  { path: "/ui-new/finance", changefreq: "daily", priority: "0.8" },
+  { path: "/ui-new/about", changefreq: "monthly", priority: "0.5" },
 ];
 
 function xmlEscape(value: string): string {

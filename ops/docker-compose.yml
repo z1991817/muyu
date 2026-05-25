@@ -16,8 +16,8 @@ services:
 
   api:
     build:
-      context: ../backend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: backend/Dockerfile
     image: moyu-api:latest
     environment:
       SEESEA_BASE_URL: http://seesea:8080
@@ -38,6 +38,24 @@ services:
       timeout: 10s
       retries: 10
       start_period: 300s
+    restart: unless-stopped
+
+  cn-market-refresh:
+    image: moyu-api:latest
+    environment:
+      SEESEA_BASE_URL: http://seesea:8080
+      SEESEA_STOCK_SDK_FALLBACK_ENABLED: "true"
+      CACHE_DB_PATH: /app/data/cache.db
+    volumes:
+      - moyu_api_data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+    command: >
+      sh -lc "while true; do
+        timeout ${CN_MARKET_REFRESH_TIMEOUT_SECONDS:-180} python -m app.jobs.refresh_cn_market || true;
+        sleep ${CN_MARKET_REFRESH_INTERVAL_SECONDS:-1800};
+      done"
     restart: unless-stopped
 
   frontend:

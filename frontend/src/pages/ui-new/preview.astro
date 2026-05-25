@@ -1,6 +1,9 @@
 ---
+import UiNewSeo from "../../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
 import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
 import { fetchHome } from "../../lib/api";
+import { SITE_KEYWORDS, SITE_NAME, SITE_URL } from "../../lib/seo";
 import { buildUiNewBoards, formatUiNewTime, groupUiNewBoards } from "../../lib/ui-new";
 import type { HomeResponse } from "../../lib/types";
 
@@ -23,6 +26,35 @@ const boards = buildUiNewBoards(data);
 const boardGroups = groupUiNewBoards(boards);
 const hasBoards = boardGroups.length > 0;
 const clientApiBase = import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api";
+const pageTitle = "摸鱼热榜新首页 - 微博知乎B站抖音热搜聚合";
+const pageDescription =
+  "摸鱼热榜新首页聚合微博、知乎、B站、抖音、虎扑、百度、GitHub、V2EX 等公开热榜，帮你快速扫一眼今天大家在聊什么。";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: pageTitle,
+  url: SITE_URL,
+  description: pageDescription,
+  keywords: SITE_KEYWORDS,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  about: ["热搜平台", "热搜聚合", "今日热搜", "微博热搜", "知乎热榜", "B站热搜"],
+  hasPart: boards.slice(0, 12).map((board) => ({
+    "@type": "ItemList",
+    name: `${board.platformName}热榜`,
+    numberOfItems: board.items.length,
+    itemListElement: board.items.slice(0, 10).map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.title,
+      url: item.url,
+    })),
+  })),
+};
 ---
 
 <!doctype html>
@@ -30,7 +62,7 @@ const clientApiBase = import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api"
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>热搜聚合平台首页预览</title>
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/" robots="noindex, follow" structuredData={structuredData} />
     <link rel="stylesheet" href="/ui-new/base.css" />
     <link rel="stylesheet" href="/ui-new/preview.css" />
   </head>
@@ -41,13 +73,13 @@ const clientApiBase = import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api"
       <main>
         {hasBoards ? (
           <div class="category-stack">
+            <h1 class="sr-only">摸鱼热榜新首页预览 - 公开热榜链接聚合</h1>
             {boardGroups.map((group) => (
               <section class="category-section" data-category={group.id} aria-labelledby={`category-${group.id}`}>
                 <header class="category-head">
                   <div>
                     <h2 id={`category-${group.id}`}>{group.label}</h2>
                   </div>
-                  <span>{group.boards.length} 个来源</span>
                 </header>
                 <div class="platform-grid">
                   {group.boards.map((board) => (
@@ -96,6 +128,7 @@ const clientApiBase = import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api"
           </section>
         )}
       </main>
+      <UiNewFooter />
       <div class="toast-host" aria-live="polite" aria-atomic="true"></div>
     </div>
     <script is:inline>

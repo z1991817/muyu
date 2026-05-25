@@ -23,7 +23,10 @@ from app.models.source import Source
 from app.models.trend import Trend
 from app.platforms import get_platform_name
 
-_CN_INDEX_NAMES = {"上证指数", "深证成指", "创业板指"}
+_CN_INDEX_NAMES = {"上证指数", "沪深300", "中证500", "科创50"}
+_CN_INDEX_SYMBOLS = {"000001", "000300", "000905", "000688"}
+_CN_MARKET_STOCK_LIMIT = 20
+_CN_LIMIT_LIST_LIMIT = 8
 _CN_HISTORY_SYMBOLS = (
     ("600519", "贵州茅台"),
     ("300750", "宁德时代"),
@@ -35,6 +38,25 @@ _CN_HISTORY_SYMBOLS = (
     ("600900", "长江电力"),
     ("601899", "紫金矿业"),
     ("000651", "格力电器"),
+    ("600030", "中信证券"),
+    ("600276", "恒瑞医药"),
+    ("601988", "中国银行"),
+    ("600309", "万华化学"),
+    ("300760", "迈瑞医疗"),
+    ("601668", "中国建筑"),
+    ("601088", "中国神华"),
+    ("600887", "伊利股份"),
+    ("601398", "工商银行"),
+    ("600941", "中国移动"),
+    ("601288", "农业银行"),
+    ("601857", "中国石油"),
+    ("600028", "中国石化"),
+    ("601012", "隆基绿能"),
+    ("300059", "东方财富"),
+    ("002415", "海康威视"),
+    ("000001", "平安银行"),
+    ("600050", "中国联通"),
+    ("601688", "华泰证券"),
 )
 
 
@@ -70,6 +92,7 @@ class SeeSeaClient:
         )
         self._sdk_client: object | None = None
         self._stock_sdk_client: object | None = None
+        self._stock_sdk_lock = asyncio.Lock()
         self._enable_hot_sdk_fallback = enable_hot_sdk_fallback
         self._enable_stock_sdk_fallback = enable_stock_sdk_fallback
 
@@ -162,36 +185,34 @@ class SeeSeaClient:
             ),
         )
 
-        indices = [
-            _map_cn_index(item, now)
-            for item in _iter_dict_items(indices_raw)
-            if _is_primary_cn_index(item)
-        ]
+        indices = _map_primary_cn_indices(_iter_dict_items(indices_raw), now)
         stocks = [_map_cn_stock(item, now) for item in _iter_dict_items(quotes_raw)]
         stocks = [item for item in stocks if item is not None]
         stocks.sort(key=lambda item: abs(item.change_pct), reverse=True)
+        limit_up_all = [
+            item
+            for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_up_raw))
+            if item is not None
+        ]
+        limit_down_all = [
+            item
+            for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_down_raw))
+            if item is not None
+        ]
+        if len(stocks) < _CN_MARKET_STOCK_LIMIT:
+            stocks = _supplement_market_stocks_from_limit_stocks(
+                stocks,
+                limit_up_all + limit_down_all,
+                now,
+            )
 
         response = CnMarketResponse(
-            indices=[item for item in indices if item is not None][:3],
-            stocks=stocks[:10],
+            indices=indices[:3],
+            stocks=stocks[:_CN_MARKET_STOCK_LIMIT],
             analysis=CnMarketAnalysis(
-                fund_flows=[
-                    item
-                    for item in (_map_cn_fund_flow(raw) for raw in _iter_dict_items(fund_flow_raw))
-                    if item is not None
-                ][:6],
-                limit_up=[
-                    item
-                    for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_up_raw))
-                    if item is not None
-                ][:8],
-                limit_down=[
-                    item
-                    for item in (
-                        _map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_down_raw)
-                    )
-                    if item is not None
-                ][:8],
+                fund_flows=_map_cn_fund_flows(_iter_dict_items(fund_flow_raw))[:6],
+                limit_up=limit_up_all[:_CN_LIMIT_LIST_LIMIT],
+                limit_down=limit_down_all[:_CN_LIMIT_LIST_LIMIT],
             ),
             stale=False,
             updated_at=now,
@@ -212,32 +233,34 @@ class SeeSeaClient:
         limit_up_raw = await self._run_stock_sdk("get_zt_pool", trade_date)
         limit_down_raw = await self._run_stock_sdk("get_dt_pool", trade_date)
 
-        indices = [
-            _map_cn_index(item, now)
-            for item in _iter_dict_items(indices_raw)
-            if _is_primary_cn_index(item)
-        ]
+        indices = _map_primary_cn_indices(_iter_dict_items(indices_raw), now)
         stocks = [_map_cn_stock(item, now) for item in _iter_dict_items(quotes_raw)]
         stocks = [item for item in stocks if item is not None]
         stocks.sort(key=lambda item: abs(item.change_pct), reverse=True)
+        limit_up_all = [
+            item
+            for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_up_raw))
+            if item is not None
+        ]
+        limit_down_all = [
+            item
+            for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_down_raw))
+            if item is not None
+        ]
+        if len(stocks) < _CN_MARKET_STOCK_LIMIT:
+            stocks = _supplement_market_stocks_from_limit_stocks(
+                stocks,
+                limit_up_all + limit_down_all,
+                now,
+            )
 
         response = CnMarketResponse(
-            indices=[item for item in indices if item is not None][:3],
-            stocks=stocks[:10],
+            indices=indices[:3],
+            stocks=stocks[:_CN_MARKET_STOCK_LIMIT],
             analysis=CnMarketAnalysis(
                 fund_flows=[],
-                limit_up=[
-                    item
-                    for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_up_raw))
-                    if item is not None
-                ][:8],
-                limit_down=[
-                    item
-                    for item in (
-                        _map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_down_raw)
-                    )
-                    if item is not None
-                ][:8],
+                limit_up=limit_up_all[:_CN_LIMIT_LIST_LIMIT],
+                limit_down=limit_down_all[:_CN_LIMIT_LIST_LIMIT],
             ),
             stale=True,
             updated_at=now,
@@ -316,7 +339,8 @@ class SeeSeaClient:
 
     async def _run_stock_sdk(self, method: str, *args: object) -> object:
         try:
-            return await asyncio.to_thread(self._run_stock_sdk_sync, method, *args)
+            async with self._stock_sdk_lock:
+                return await asyncio.to_thread(self._run_stock_sdk_sync, method, *args)
         except Exception as exc:
             raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
 
@@ -329,7 +353,7 @@ class SeeSeaClient:
             return _fetch_recent_cn_stock_history(self._stock_sdk_client, trade_date)
 
         sdk_method: Callable[..., object] = getattr(self._stock_sdk_client, method)
-        result = sdk_method(*args)
+        result = _call_stock_sdk_method(sdk_method, *args)
         if not getattr(result, "success", False):
             raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
         data = getattr(result, "data", None)
@@ -466,7 +490,35 @@ def _number(raw: dict[str, object], *keys: str, default: float = 0.0) -> float:
 def _is_primary_cn_index(raw: dict[str, object]) -> bool:
     symbol = _text(raw, "代码", "code", "symbol", "指数代码")
     name = _text(raw, "名称", "name", "指数名称")
-    return name in _CN_INDEX_NAMES or symbol in {"000001", "399001", "399006"}
+    return name in _CN_INDEX_NAMES or symbol in _CN_INDEX_SYMBOLS
+
+
+def _map_primary_cn_indices(items: list[dict[str, object]], updated_at: str) -> list[CnMarketIndex]:
+    mapped: list[CnMarketIndex] = []
+    seen: set[str] = set()
+    preferred_symbols = ("000001", "000300", "000905", "000688")
+
+    for symbol in preferred_symbols:
+        item = next(
+            (raw for raw in items if _text(raw, "代码", "code", "symbol", "指数代码") == symbol),
+            None,
+        )
+        if item is None:
+            continue
+        index = _map_cn_index(item, updated_at)
+        if index is not None and index.symbol not in seen:
+            mapped.append(index)
+            seen.add(index.symbol)
+
+    for item in items:
+        if not _is_primary_cn_index(item):
+            continue
+        index = _map_cn_index(item, updated_at)
+        if index is not None and index.symbol not in seen:
+            mapped.append(index)
+            seen.add(index.symbol)
+
+    return mapped
 
 
 def _stock_url(symbol: str) -> str:
@@ -535,7 +587,7 @@ def _fetch_recent_cn_stock_history(
     items: list[dict[str, object]] = []
     method = cast(StockKlineClient, stock_client).get_kline
     for symbol, name in _CN_HISTORY_SYMBOLS:
-        result = method(symbol, "daily", trade_date, trade_date, "qfq")
+        result = _call_stock_sdk_method(method, symbol, "daily", trade_date, trade_date, "qfq")
         if not getattr(result, "success", False):
             continue
         rows = _iter_dict_items(getattr(result, "data", None))
@@ -547,12 +599,68 @@ def _fetch_recent_cn_stock_history(
     return items
 
 
+def _call_stock_sdk_method(method: Callable[..., object], *args: object) -> object:
+    result: object | None = None
+    for _attempt in range(3):
+        result = method(*args)
+        if getattr(result, "success", False):
+            return result
+    return result
+
+
+def _map_cn_fund_flows(items: list[dict[str, object]]) -> list[CnFundFlow]:
+    if not items:
+        return []
+
+    latest = items[-1]
+    if latest.get("主力净流入-净额") is None:
+        flows = [_map_cn_fund_flow(item) for item in items]
+        return [item for item in flows if item is not None]
+
+    return [
+        item
+        for item in (
+            _map_cn_fund_flow_metric(latest, "主力资金", "主力净流入-净额", "主力净流入-净占比"),
+            _map_cn_fund_flow_metric(latest, "超大单", "超大单净流入-净额", "超大单净流入-净占比"),
+            _map_cn_fund_flow_metric(latest, "大单", "大单净流入-净额", "大单净流入-净占比"),
+            _map_cn_fund_flow_metric(latest, "中单", "中单净流入-净额", "中单净流入-净占比"),
+            _map_cn_fund_flow_metric(latest, "小单", "小单净流入-净额", "小单净流入-净占比"),
+        )
+        if item is not None
+    ]
+
+
+def _map_cn_fund_flow_metric(
+    raw: dict[str, object], name: str, value_key: str, pct_key: str
+) -> CnFundFlow | None:
+    if raw.get(value_key) is None:
+        return None
+    value = _text(raw, value_key, default="-")
+    direction = "in" if not str(value).startswith("-") else "out"
+    return CnFundFlow(
+        name=name,
+        value=value,
+        change_pct=_number(raw, pct_key),
+        direction=direction,
+    )
+
+
 def _map_cn_fund_flow(raw: dict[str, object]) -> CnFundFlow | None:
     name = _text(raw, "名称", "name", "板块", "行业", "item")
+    if not name and raw.get("日期") is not None:
+        name = "主力资金"
     if not name:
         return None
-    value = _text(raw, "净流入", "主力净流入", "value", "amount", default="-")
-    change_pct = _number(raw, "涨跌幅", "change_pct", "change_percent")
+    value = _text(raw, "净流入", "主力净流入", "主力净流入-净额", "value", "amount", default="-")
+    change_pct = _number(
+        raw,
+        "涨跌幅",
+        "上证-涨跌幅",
+        "深证-涨跌幅",
+        "主力净流入-净占比",
+        "change_pct",
+        "change_percent",
+    )
     direction = "in" if not str(value).startswith("-") else "out"
     return CnFundFlow(name=name, value=value, change_pct=change_pct, direction=direction)
 
@@ -572,9 +680,39 @@ def _map_cn_limit_stock(raw: dict[str, object]) -> CnLimitStock | None:
     )
 
 
+def _supplement_market_stocks_from_limit_stocks(
+    stocks: list[CnMarketStock],
+    limit_stocks: list[CnLimitStock],
+    updated_at: str,
+) -> list[CnMarketStock]:
+    merged = list(stocks)
+    seen = {item.symbol for item in merged}
+    for item in limit_stocks:
+        if item.symbol in seen:
+            continue
+        merged.append(
+            CnMarketStock(
+                symbol=item.symbol,
+                name=item.name,
+                price=item.price,
+                change=0,
+                change_pct=item.change_pct,
+                volume="-",
+                turnover="-",
+                url=item.url,
+                updated_at=updated_at,
+                disclaimer=settings.market_disclaimer,
+            )
+        )
+        seen.add(item.symbol)
+        if len(merged) >= _CN_MARKET_STOCK_LIMIT:
+            break
+    return merged
+
+
 def _create_sdk_client() -> object:
     try:
-        from seesea.sdk.feed.hot_client import HotTrendClient
+        from seesea.sdk.feed.hot_client import HotTrendClient  # type: ignore[reportMissingImports]
     except ImportError as exc:
         raise SeeSeaError("SEESEA_SDK_UNAVAILABLE", "上游数据源暂不可用") from exc
 
@@ -587,7 +725,7 @@ def _create_sdk_client() -> object:
 
 def _create_stock_sdk_client() -> object:
     try:
-        from seesea.sdk.stock.client import StockClient
+        from seesea.sdk.stock.client import StockClient  # type: ignore[reportMissingImports]
     except ImportError as exc:
         raise SeeSeaError("SEESEA_SDK_UNAVAILABLE", "上游数据源暂不可用") from exc
 

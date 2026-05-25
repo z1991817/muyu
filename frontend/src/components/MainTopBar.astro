@@ -3,6 +3,7 @@ interface NavItem {
   href: string;
   label: string;
   active?: boolean;
+  uiVersion?: "simple" | "bold";
 }
 
 interface Props {
@@ -29,12 +30,24 @@ const {
         class:list={[item.active && "active"]}
         href={item.href}
         aria-current={item.active ? "page" : undefined}
+        data-ui-version={item.uiVersion}
       >
         {item.label}
       </a>
     ))}
   </nav>
 </header>
+
+<script is:inline>
+  (() => {
+    document.querySelectorAll("[data-ui-version]").forEach((link) => {
+      link.addEventListener("click", () => {
+        const version = link.dataset.uiVersion;
+        if (version) localStorage.setItem("moyu-ui-version", version);
+      });
+    });
+  })();
+</script>
 
 <style>
   .topbar {

@@ -1,4 +1,6 @@
 .market-shell {
+  --market-down: var(--success);
+  --market-up: var(--danger);
   min-height: 100vh;
   background:
     linear-gradient(var(--hero-start) 0, var(--hero-end) 220px),
@@ -126,9 +128,41 @@ h1 {
   margin-top: 4px;
 }
 
+.field-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.field-strip > span,
+.stock-fields > span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 26px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 0 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-strip strong,
+.stock-fields strong {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-weight: 650;
+  margin-right: 6px;
+}
+
 .index-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
 }
 
@@ -220,12 +254,12 @@ h1 {
 
 .is-up .delta-row,
 .is-up .stock-change {
-  color: var(--success);
+  color: var(--market-up);
 }
 
 .is-down .delta-row,
 .is-down .stock-change {
-  color: var(--danger);
+  color: var(--market-down);
 }
 
 .sparkline {
@@ -243,19 +277,60 @@ h1 {
 }
 
 .index-card.is-up .sparkline {
-  color: var(--success);
+  color: var(--market-up);
 }
 
 .index-card.is-down .sparkline {
-  color: var(--danger);
+  color: var(--market-down);
+}
+
+.inline-fields {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+}
+
+.inline-fields div {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.inline-fields dt,
+.inline-fields dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-fields dt {
+  color: var(--text-tertiary);
+}
+
+.inline-fields dd {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .stock-table {
-  overflow: hidden;
+  --stock-header-height: 38px;
+  --stock-row-height: 50px;
+  --stock-visible-rows: 10;
+
+  max-height: calc(var(--stock-header-height) + (var(--stock-row-height) * var(--stock-visible-rows)) + 1px);
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--card-shadow);
+  scrollbar-gutter: stable;
 }
 
 .stock-row {
@@ -263,12 +338,16 @@ h1 {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   align-items: center;
-  min-height: 50px;
+  min-height: var(--stock-row-height);
   border-top: 1px solid var(--border-light);
   color: var(--text-primary);
   padding: 8px 16px;
   text-decoration: none;
   transition: background-color 120ms ease;
+}
+
+a.stock-row:has(.stock-fields) {
+  grid-template-rows: auto auto;
 }
 
 .stock-row:first-child {
@@ -280,7 +359,10 @@ a.stock-row:hover {
 }
 
 .stock-row-head {
-  min-height: 38px;
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  min-height: var(--stock-header-height);
   background: var(--muted-background);
   color: var(--text-tertiary);
   font-size: 12px;
@@ -290,12 +372,9 @@ a.stock-row:hover {
 .stock-row-head span:nth-child(2),
 .stock-row-head span:nth-child(3),
 .stock-row-head span:nth-child(4),
-.stock-row-head span:nth-child(5) {
-  text-align: center;
-}
-
+.stock-row-head span:nth-child(5),
 .stock-row-head span:nth-child(6) {
-  padding-left: 4px;
+  text-align: center;
 }
 
 .stock-name {
@@ -333,6 +412,15 @@ a.stock-row:hover {
   white-space: nowrap;
 }
 
+.stock-fields {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
 .stock-delta,
 .stock-turnover,
 .stock-volume {
@@ -340,11 +428,11 @@ a.stock-row:hover {
 }
 
 .stock-row.is-up .stock-delta {
-  color: var(--success);
+  color: var(--market-up);
 }
 
 .stock-row.is-down .stock-delta {
-  color: var(--danger);
+  color: var(--market-down);
 }
 
 .analysis-grid {
@@ -439,12 +527,12 @@ a.analysis-row:hover {
 
 .analysis-row.is-up strong,
 .analysis-row.is-up small {
-  color: var(--success);
+  color: var(--market-up);
 }
 
 .analysis-row.is-down strong,
 .analysis-row.is-down small {
-  color: var(--danger);
+  color: var(--market-down);
 }
 
 .market-foot {
@@ -483,11 +571,17 @@ a.analysis-row:hover {
   }
 
   .index-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
   .analysis-grid {
     grid-template-columns: 1fr;
+  }
+
+  .stock-table {
+    --stock-row-height: 96px;
+
+    max-height: calc(var(--stock-row-height) * var(--stock-visible-rows));
   }
 
   .stock-row {
@@ -513,6 +607,11 @@ a.analysis-row:hover {
     display: grid;
     gap: 3px;
     text-align: right;
+  }
+
+  .stock-fields {
+    grid-column: 1 / -1;
+    padding-top: 4px;
   }
 
   .stock-price::before,

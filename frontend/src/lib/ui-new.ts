@@ -117,7 +117,7 @@ const PLATFORM_CATEGORY: Record<string, UiNewCategoryId> = {
   "bilibili-hot-search": "frequent",
   baidu: "frequent",
   toutiao: "frequent",
-  douban: "frequent",
+  hupu: "frequent",
   thepaper: "frequent",
   ifeng: "general",
   kuaishou: "community",
@@ -139,7 +139,7 @@ const PLATFORM_CATEGORY: Record<string, UiNewCategoryId> = {
   jin10: "general",
   gelonghui: "general",
   "xueqiu-hotstock": "general",
-  hupu: "community",
+  douban: "community",
   tieba: "community",
 };
 

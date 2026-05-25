@@ -22,7 +22,7 @@ from app.platforms import PLATFORMS
 logger = logging.getLogger(__name__)
 
 INITIAL_REFRESH_DELAY_SECONDS = 10
-CN_MARKET_REFRESH_TIMEOUT_SECONDS = 25
+CN_MARKET_REFRESH_TIMEOUT_SECONDS = 120
 
 
 class CnMarketFetcher(Protocol):
@@ -149,6 +149,7 @@ async def _refresh_cn_market(
             seesea.fetch_cn_market(),
             timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
         )
+        response = await _merge_cn_market_cache_on_partial_empty(response, cache)
         await cache.set(
             "market:cn",
             response.model_dump(mode="json"),
@@ -171,6 +172,7 @@ async def _refresh_cn_market(
             seesea.fetch_cn_market_recent_trade_snapshot(),
             timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
         )
+        snapshot = await _merge_cn_market_cache_on_partial_empty(snapshot, cache)
         await cache.set(
             "market:cn",
             snapshot.model_dump(mode="json"),
@@ -191,26 +193,70 @@ async def _refresh_cn_market(
         return None
 
 
+async def _merge_cn_market_cache_on_partial_empty(
+    response: CnMarketResponse,
+    cache: SQLiteCache,
+) -> CnMarketResponse:
+    if (
+        response.indices
+        and response.stocks
+        and response.analysis.fund_flows
+        and response.analysis.limit_up
+    ):
+        return response
+
+    cached = await cache.get("market:cn")
+    if cached is None:
+        return response
+
+    payload, _is_expired = cached
+    try:
+        cached_response = CnMarketResponse.model_validate(payload)
+    except Exception:
+        return response
+    updates: dict[str, object] = {}
+    if not response.indices and cached_response.indices:
+        updates["indices"] = cached_response.indices
+    if not response.stocks and cached_response.stocks:
+        updates["stocks"] = cached_response.stocks
+
+    analysis = response.analysis
+    analysis_updates: dict[str, object] = {}
+    if not analysis.fund_flows and cached_response.analysis.fund_flows:
+        analysis_updates["fund_flows"] = cached_response.analysis.fund_flows
+    if not analysis.limit_up and cached_response.analysis.limit_up:
+        analysis_updates["limit_up"] = cached_response.analysis.limit_up
+    if not analysis.limit_down and cached_response.analysis.limit_down:
+        analysis_updates["limit_down"] = cached_response.analysis.limit_down
+    if analysis_updates:
+        updates["analysis"] = analysis.model_copy(update=analysis_updates)
+
+    if not updates:
+        return response
+
+    updates["stale"] = True
+    return response.model_copy(update=updates)
+
+
 async def _refresh_all(
     seesea: SeeSeaClient,
     akshare: AkShareClient,
     cache: SQLiteCache,
     default_platforms: list[str],
 ) -> None:
-    (
-        trends_result,
-        sources_result,
-        market_result,
-        _stocks_result,
-        _cn_market_result,
-    ) = await asyncio.gather(
+    refresh_tasks = [
         _refresh_trends(seesea, cache, default_platforms),
         _refresh_sources(seesea, cache),
         _refresh_market(akshare, cache),
         _refresh_stocks(akshare, cache),
-        _refresh_cn_market(seesea, cache),
-        return_exceptions=True,
-    )
+    ]
+    if settings.cn_market_scheduler_enabled:
+        refresh_tasks.append(_refresh_cn_market(seesea, cache))
+
+    results = await asyncio.gather(*refresh_tasks, return_exceptions=True)
+    trends_result = results[0]
+    sources_result = results[1]
+    market_result = results[2]
 
     if (
         isinstance(trends_result, TrendsResponse)

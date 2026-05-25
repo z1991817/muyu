@@ -14,7 +14,7 @@
 
 1. **本项目是公开榜单链接聚合器**，不是新闻站、不是资讯站。永远只保留：标题、原站链接、平台、排名、热度、更新时间。**禁止**抓正文、缓存图片、做 AI 摘要、做评论区。
 2. **SeeSea 是内网数据源**，对外永远不暴露。前端永远不直连 SeeSea，必须经 FastAPI 一层清洗与字段映射。
-3. **设计规范按路由分流**：常规前端 UI 沿用 [doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)；所有 `/ui-new/*` 页面是新 UI 设计线，必须沿用 [doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)，禁止在两套视觉之间混用。
+3. **设计规范按版本分流**：默认首页 `/` 与 `/ui-new/*` 是“简约版”，必须沿用 [doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)；`/bold` 是“大胆版”，沿用 [doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)。禁止在两套视觉之间混用。
 
 ---
 
@@ -23,10 +23,10 @@
 ### 1.1 前端
 - ✅ 必须用：Astro 5、TypeScript、原生 CSS（或 CSS Modules / Tailwind v4）。
 - ✅ 前端 TypeScript 开发必须遵循 `.agents/skills/typescript-advanced-types/SKILL.md`（如与本仓库规范冲突，以本文件与 `frontend/AGENTS.md` 为准）。
-- ✅ 字体：常规页面 Google Fonts 加载 Bagel Fat One / Fraunces / Ma Shan Zheng / Space Mono / ZCOOL KuaiLe，**不许换字体**；`/ui-new/*` 使用 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md` 中的 Geist / Inter / system sans 字体栈，**不要加载 Riso 五套字体**。
-- ✅ 颜色：常规页面必须使用 `doc/摸鱼热榜-趣味Riso风格设计规范.md` §1 中的 CSS Variables（`--paper`、`--ink`、`--pink` 等），**禁止自创近似色**；`/ui-new/*` 使用 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md` 的黑白灰 token。
+- ✅ 字体：大胆版 Riso 页面加载 Bagel Fat One / Fraunces / Ma Shan Zheng / Space Mono / ZCOOL KuaiLe，**不许换字体**；简约版页面（`/` 与 `/ui-new/*`）使用 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md` 中的 Geist / Inter / system sans 字体栈，**不要加载 Riso 五套字体**。
+- ✅ 颜色：大胆版 Riso 页面必须使用 `doc/摸鱼热榜-趣味Riso风格设计规范.md` §1 中的 CSS Variables（`--paper`、`--ink`、`--pink` 等），**禁止自创近似色**；简约版页面（`/` 与 `/ui-new/*`）使用 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md` 的黑白灰 token。
 - ❌ 禁止引入：Next.js、Nuxt、Vue、React Router、Remix、SvelteKit、Vite-only SPA、Element Plus、Ant Design、Material UI、Chakra UI、DaisyUI、shadcn/ui、Bootstrap。
-- ❌ 常规页面禁止在 CSS 里出现：纯白底（`#FFFFFF` / `#FFF` / `white` 作为页面/卡片底色）、带 blur 的 `box-shadow`、线性/径向渐变填充卡片（仅 body 底层氛围渐变允许）、`transform: none` 强对齐（移动端断点例外）。`/ui-new/*` 按 Vercel 风格规范执行，允许纯白、轻 blur、轻阴影和正常对齐。
+- ❌ 大胆版 Riso 页面禁止在 CSS 里出现：纯白底（`#FFFFFF` / `#FFF` / `white` 作为页面/卡片底色）、带 blur 的 `box-shadow`、线性/径向渐变填充卡片（仅 body 底层氛围渐变允许）、`transform: none` 强对齐（移动端断点例外）。简约版页面按 Vercel 风格规范执行，允许纯白、轻 blur、轻阴影和正常对齐。
 - ❌ 禁止纯客户端首屏：热榜内容必须 SSR 输出真实 HTML，再用岛屿做局部刷新。SEO 是硬指标。
 
 ### 1.2 后端
@@ -50,19 +50,20 @@
 
 主源按文件路径选择：
 
-- 常规页面：**[doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)**。
-- `/ui-new/*` 页面：**[doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)**。
+- 默认首页 `/` 与 `/ui-new/*`：**[doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)**。
+- 大胆版 `/bold` 与后续 Riso 页面：**[doc/摸鱼热榜-趣味Riso风格设计规范.md](doc/摸鱼热榜-趣味Riso风格设计规范.md)**。
 
 **写任何 `.astro` / `.css` / `.tsx` 前必须先读对应设计规范，不要凭印象写。**
 
-### 2.0 `/ui-new/*` 新 UI 设计线
+### 2.0 简约版 UI 设计线
 
-`/ui-new/*` 是新的 Vercel-like 简约 UI 设计线，对应文件包括：
+`/` 与 `/ui-new/*` 是 Vercel-like 简约 UI 设计线，对应文件包括：
 
+- `frontend/src/pages/index.astro`
 - `frontend/src/pages/ui-new/**/*.astro`
 - `frontend/public/ui-new/**/*.css`
 
-该目录下所有页面及其专属样式**不需要遵守 Riso/Zine 设计规范**，必须遵守 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md`。允许使用独立字体、颜色、圆角、轻阴影、对齐方式、卡片背景与主题系统；也不要求使用 Riso 的噪点、网点、硬阴影、错位旋转、平台色或 5 套字体。
+这些页面及其专属样式**不需要遵守 Riso/Zine 设计规范**，必须遵守 `doc/摸鱼热榜-ui-new-Vercel风格设计规范.md`。允许使用独立字体、颜色、圆角、轻阴影、对齐方式、卡片背景与主题系统；也不要求使用 Riso 的噪点、网点、硬阴影、错位旋转、平台色或 5 套字体。
 
 但该例外只豁免视觉风格，不豁免以下规则：
 
@@ -70,8 +71,10 @@
 - 热榜内容仍必须 SSR 输出真实 HTML，链接仍必须是原站真实 `<a>`。
 - 调后端仍必须走 `src/lib/api.ts` 或页面内已明确用于预览的 FastAPI API base，不得直连 SeeSea。
 - 数据字段、安全合规、免责声明、缓存兜底、SeeSea 不透传等边界仍按本文件执行。
+- 简约版与大胆版的用户偏好使用 `localStorage` key `moyu-ui-version`，值为 `simple` / `bold`；根路径 `/` 必须尊重该偏好，`bold` 时跳转到 `/bold`，`simple` 时留在 `/`。
+- 简约版主题使用 `localStorage` key `trend-skin`，值为 `vercel` / `dim`；没有缓存时默认 `dim` 暗色主题。
 
-常规 Riso 页面硬约束摘要（违反即返工）：
+大胆版 Riso 页面硬约束摘要（违反即返工）：
 
 | 维度 | 规则 |
 |---|---|
@@ -86,7 +89,7 @@
 | 单卡 sticker | ≤1 个 |
 | body 必加 | 噪点滤镜 `::before` + 半色调网点 `::after` |
 
-新增页面 → 常规页面在 prompt / commit message 里显式写"沿用《摸鱼热榜-趣味Riso风格设计规范》"；`/ui-new/*` 页面显式写"沿用《摸鱼热榜-ui-new-Vercel风格设计规范》"。
+新增页面 → Riso 页面在 prompt / commit message 里显式写"沿用《摸鱼热榜-趣味Riso风格设计规范》"；简约版页面显式写"沿用《摸鱼热榜-ui-new-Vercel风格设计规范》"。
 
 ---
 
@@ -108,7 +111,7 @@ moyu/
 │   ├── astro.config.mjs
 │   ├── package.json
 │   ├── src/
-│   │   ├── pages/            ← / · /trends · /market · /source/[id]
+│   │   ├── pages/            ← /（简约版首页）· /bold（大胆版首页）· /ui-new/* · /trends · /market · /source/[id]
 │   │   ├── components/       ← Riso 组件库（TopBar / Mast / Ticker / Board / Pill / Sticker）
 │   │   ├── islands/          ← 仅交互岛屿放这里
 │   │   ├── styles/           ← global.css（CSS Variables + body 噪点）
@@ -150,7 +153,7 @@ moyu/
 
 ### 4.1 通用
 - 文件名：前端 kebab-case (`hot-board.astro`)、后端 snake_case (`seesea_client.py`)。
-- 平台 ID 使用 SeeSea 一致的小写串：`weibo / zhihu / bilibili-hot-search / douyin / v2ex / github-trending-today / hupu / tieba / douban`。新增平台必须在常规 Riso 页面平台映射里补充；`/ui-new/*` 页面只使用 `frontend/src/lib/ui-new.ts` 的新 UI meta，不需要补 Riso 平台色。
+- 平台 ID 使用 SeeSea 一致的小写串：`weibo / zhihu / bilibili-hot-search / douyin / v2ex / github-trending-today / hupu / tieba / douban`。新增平台必须在大胆版 Riso 页面平台映射里补充；简约版页面只使用 `frontend/src/lib/ui-new.ts` 的新 UI meta，不需要补 Riso 平台色。
 - 时间字段统一使用 ISO 8601 + 时区（`2026-05-18T10:00:00+08:00`），**禁止**用毫秒时间戳。
 - 注释默认不写。只在「为什么」非显然时写一行；禁止写「这里做了什么」式注释。
 
@@ -191,13 +194,19 @@ moyu/
    - 前端：`pnpm astro check`（或 `npm run check`）+ `pnpm build`，要求 0 error。
    - 后端：`ruff check . && ruff format --check . && pyright`（或 `mypy app`），要求 0 error。
    - 测试：`pytest -q`（如已有），新功能至少补 happy path。
-6. **提交前**：
+6. **本地启动 / 浏览器验证**：
+   - 开发预览、前后端联调、UI 浏览器验证统一使用 Docker Compose 启动，不再用 `pnpm dev` / 本机 `uvicorn` / 本机 SeeSea 作为默认验证环境。
+   - Windows 优先使用：`.\ops\restart.ps1 -Mode docker -Build`；不需要重建镜像时可去掉 `-Build`。
+   - 通用命令：`docker compose -f ops/docker-compose.yml up -d --build`；停止用 `docker compose -f ops/docker-compose.yml down --remove-orphans`。
+   - 浏览器验证默认访问 Nginx 入口：`http://127.0.0.1:18081/`；大胆版访问 `http://127.0.0.1:18081/bold`；`/ui-new/*` 访问 `http://127.0.0.1:18081/ui-new/...`。
+   - 如果 Docker 不可用，AI 必须暂停并说明阻塞原因，不得静默 fallback 到本机 dev server。
+7. **提交前**：
    - 检查是否触发本文件任一 ❌；
    - 检查是否引入了未列入红线允许的依赖；
    - 检查 SeeSea 字段是否经过 `SeeSeaClient` 映射，未透传到前端；
    - 检查本次问题是否只是局部现象；如属于公共层问题，必须同步抽公共能力或更新规范，避免下次靠用户再次提醒。
-   - 检查常规 UI 是否符合 Riso 设计规范（旋转、阴影、字体、平台色）；检查 `/ui-new/*` 是否符合 Vercel 风格设计规范（黑白灰 token、1px hairline、小圆角、轻阴影、Geist/system 字体、简约信息密度）。
-7. **commit message**：使用 conventional commits（`feat(frontend): ...` / `fix(backend): ...` / `docs: ...` / `chore(ops): ...`）。
+   - 检查大胆版 UI 是否符合 Riso 设计规范（旋转、阴影、字体、平台色）；检查简约版是否符合 Vercel 风格设计规范（黑白灰 token、1px hairline、小圆角、轻阴影、Geist/system 字体、简约信息密度、主题/版本缓存）。
+8. **commit message**：使用 conventional commits（`feat(frontend): ...` / `fix(backend): ...` / `docs: ...` / `chore(ops): ...`）。
 
 ---
 
@@ -228,8 +237,8 @@ moyu/
 - [ ] FastAPI 跑通 `/api/home /api/trends /api/sources /api/market/us /healthz` 五个端点
 - [ ] SeeSea 仅在 `app/clients/seesea.py` 出现，且全部经过字段映射
 - [ ] SQLite `cache_entries` 表落地，失败兜底逻辑可演示
-- [ ] Astro 首页 `/` SSR 输出真实热搜 HTML（curl 能看见标题）
-- [ ] Riso 设计规范关键元素齐备：噪点底、网点叠层、5 套字体、平台色卡、硬阴影、错位旋转
+- [ ] Astro 首页 `/` 使用简约版并 SSR 输出真实热搜 HTML（curl 能看见标题）
+- [ ] 大胆版 `/bold` 保留 Riso 设计规范关键元素：噪点底、网点叠层、5 套字体、平台色卡、硬阴影、错位旋转
 - [ ] Lighthouse 移动端性能 ≥ 90，可访问性 ≥ 95
 - [ ] Docker Compose 一键起：nginx + frontend + api + seesea
 - [ ] 页脚有版权与免责声明

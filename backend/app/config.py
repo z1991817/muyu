@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Moyu API"
     app_env: str = "development"
@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     seesea_base_url: str = "http://127.0.0.1:8888"
     seesea_stock_sdk_fallback_enabled: bool = False
+    cn_market_scheduler_enabled: bool = False
     seesea_default_platforms: list[str] = Field(
         default_factory=lambda: [
             "weibo",

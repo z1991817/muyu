@@ -1,6 +1,9 @@
 ---
+import UiNewSeo from "../../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
 import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
 import { fetchMarketUs, fetchUsStocks } from "../../lib/api";
+import { SITE_NAME, SITE_URL } from "../../lib/seo";
 import type { MarketIndex, MarketResponse, MarketStock, StocksResponse } from "../../lib/types";
 
 const nowIso = new Date().toISOString();
@@ -31,6 +34,46 @@ const updatedAt = marketData.updatedAt || stocksData.updatedAt || nowIso;
 const tradeDate = indices[0]?.tradeDate || stocks[0]?.tradeDate || "";
 const disclaimer =
   indices[0]?.disclaimer || stocks[0]?.disclaimer || "仅供信息展示，不构成投资建议";
+const pageTitle = "美股行情 - 三大指数与热门个股 | 摸鱼热榜";
+const pageDescription = "查看道琼斯、标普 500、纳斯达克三大指数和热门美股个股，快速了解美股市场大致涨跌情况。";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: pageTitle,
+  url: `${SITE_URL}/ui-new/finance`,
+  description: pageDescription,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  about: ["美股行情", "道琼斯", "标普 500", "纳斯达克", "热门美股"],
+  hasPart: [
+    {
+      "@type": "ItemList",
+      name: "美股三大指数",
+      numberOfItems: indices.length,
+      itemListElement: indices.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: item.name,
+        url: item.url,
+      })),
+    },
+    {
+      "@type": "ItemList",
+      name: "热门美股个股",
+      numberOfItems: stocks.length,
+      itemListElement: stocks.slice(0, 10).map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: `${item.name} ${item.symbol}`,
+        url: item.url,
+      })),
+    },
+  ],
+};
 
 function formatSigned(value: number): string {
   const fixed = Math.abs(value).toFixed(2);
@@ -147,11 +190,7 @@ function stockSparkLastPoint(points: SparkPoint[]): SparkPoint {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="摸鱼热榜 ui-new 美股页面，展示道琼斯、标普 500、纳斯达克三大指数与 10 个热门美股个股的延迟行情。"
-    />
-    <title>美股 · 摸鱼热榜</title>
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/ui-new/finance" structuredData={structuredData} />
     <link rel="stylesheet" href="/ui-new/base.css" />
     <link rel="stylesheet" href="/ui-new/finance.css" />
   </head>
@@ -272,6 +311,7 @@ function stockSparkLastPoint(points: SparkPoint[]): SparkPoint {
           <strong>{disclaimer}</strong>
         </footer>
       </main>
+      <UiNewFooter />
     </div>
   </body>
 </html>

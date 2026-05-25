@@ -172,7 +172,23 @@ async def test_scheduler_refreshes_cn_market_with_stock_sdk_fallback(
             )
 
         def get_market_fund_flow(self) -> Result:
-            return Result([])
+            return Result(
+                [
+                    {
+                        "日期": "2026-05-22",
+                        "主力净流入-净额": -59244441600.0,
+                        "主力净流入-净占比": -3.47,
+                        "超大单净流入-净额": -28084895744.0,
+                        "超大单净流入-净占比": -1.64,
+                        "大单净流入-净额": -31159545856.0,
+                        "大单净流入-净占比": -1.82,
+                        "中单净流入-净额": 5589135360.0,
+                        "中单净流入-净占比": 0.33,
+                        "小单净流入-净额": 53655302144.0,
+                        "小单净流入-净占比": 3.14,
+                    }
+                ]
+            )
 
         def get_zt_pool(self, date: str | None = None) -> Result:
             return Result(
@@ -206,8 +222,11 @@ async def test_scheduler_refreshes_cn_market_with_stock_sdk_fallback(
     payload = response.json()
     assert payload["stale"] is False
     assert payload["indices"][0]["name"] == "上证指数"
+    assert len(payload["stocks"]) == 20
     assert payload["stocks"][0]["symbol"] == "600519"
     assert payload["stocks"][0]["price"] == 1688.0
+    assert payload["analysis"]["fundFlows"][0]["name"] == "主力资金"
+    assert payload["analysis"]["fundFlows"][0]["direction"] == "out"
     assert payload["analysis"]["limitUp"][0]["reason"] == "金融活跃"
 
     await seesea.aclose()
@@ -401,6 +420,119 @@ async def test_scheduler_falls_back_to_recent_trade_snapshot(client: AsyncClient
     assert payload["stale"] is True
     assert payload["indices"][0]["name"] == "上证指数"
     assert payload["stocks"][0]["symbol"] == "600519"
+
+
+@pytest.mark.asyncio
+async def test_refresh_all_skips_cn_market_by_default(
+    test_app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app import scheduler
+    from app.config import settings
+
+    async def fail_if_called(*args: object, **kwargs: object) -> object:
+        raise AssertionError("cn market should be refreshed by the standalone job")
+
+    monkeypatch.setattr(settings, "cn_market_scheduler_enabled", False)
+    monkeypatch.setattr(scheduler, "_refresh_cn_market", fail_if_called)
+
+    await scheduler._refresh_all(
+        test_app.state.seesea_client,
+        test_app.state.akshare_client,
+        test_app.state.cache,
+        test_app.state.default_platforms,
+    )
+
+    assert await test_app.state.cache.get("market:cn") is None
+
+
+@pytest.mark.asyncio
+async def test_cn_market_job_writes_cache(
+    client: AsyncClient, test_app, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.jobs import refresh_cn_market
+
+    class Result:
+        def __init__(self, data: object) -> None:
+            self.success = True
+            self.data = data
+
+    class RecentTradeStockClient:
+        def get_index_list(self) -> Result:
+            return Result(
+                [
+                    {
+                        "代码": "000001",
+                        "名称": "上证指数",
+                        "最新价": 3120.5,
+                        "涨跌额": 12.3,
+                        "涨跌幅": 0.39,
+                    }
+                ]
+            )
+
+        def get_kline(
+            self,
+            symbol: str,
+            period: str,
+            start_date: str,
+            end_date: str,
+            adjust: str,
+        ) -> Result:
+            return Result(
+                [
+                    {
+                        "日期": start_date,
+                        "收盘": 1688.0,
+                        "涨跌额": 12.5,
+                        "涨跌幅": 0.75,
+                        "成交量": "12.3万",
+                        "成交额": "20.8亿",
+                    }
+                ]
+            )
+
+        def get_zt_pool(self, date: str | None = None) -> Result:
+            return Result([])
+
+        def get_dt_pool(self, date: str | None = None) -> Result:
+            return Result([])
+
+        def get_market_fund_flow(self) -> Result:
+            return Result(
+                [
+                    {
+                        "日期": "2026-05-22",
+                        "主力净流入-净额": 100.0,
+                        "主力净流入-净占比": 1.2,
+                    }
+                ]
+            )
+
+    async def fake_get_json(self: object, path: str, params: dict[str, str] | None) -> object:
+        from app.clients.seesea import SeeSeaError
+
+        raise SeeSeaError("SEESEA_UPSTREAM", "mock missing stock HTTP route")
+
+    def fake_create_stock_sdk_client() -> RecentTradeStockClient:
+        return RecentTradeStockClient()
+
+    monkeypatch.setattr(
+        refresh_cn_market.settings, "cache_db_path", test_app.state.cache._db_path.as_posix()
+    )
+    monkeypatch.setattr("app.clients.seesea._create_stock_sdk_client", fake_create_stock_sdk_client)
+    monkeypatch.setattr("app.clients.seesea.SeeSeaClient._get_json", fake_get_json)
+
+    exit_code = await refresh_cn_market.refresh_once()
+
+    assert exit_code == 0
+    response = await client.get("/api/market/cn")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["stale"] is False
+    assert payload["indices"][0]["name"] == "上证指数"
+    assert len(payload["stocks"]) == 20
+    assert payload["stocks"][0]["symbol"] == "600519"
+    assert payload["analysis"]["fundFlows"][0]["name"] == "主力资金"
 
 
 @pytest.mark.asyncio

@@ -34,7 +34,9 @@ frontend/
 │   └── fonts/                  ← 可选自托管字体
 └── src/
     ├── pages/
-    │   ├── index.astro         ← /          首页（热榜矩阵 + 美股大盘）
+    │   ├── index.astro         ← /          简约版首页（Vercel-like 热榜矩阵）
+    │   ├── bold.astro          ← /bold      大胆版首页（Riso/Zine 旧 UI）
+    │   ├── ui-new/             ← /ui-new/*  简约版实验/分页面
     │   ├── trends.astro        ← /trends    全部热榜（平台筛选）
     │   ├── market.astro        ← /market    美股大盘
     │   └── source/[id].astro   ← /source/:id 单平台热榜
@@ -74,6 +76,9 @@ frontend/
 - 首页必须 SSR 输出真实 `<a>` + 热搜标题：`curl https://localhost:4321/` 必须能看见热搜文字。
 - `<head>` 必备：`<title>` / `<meta description>` / `<link rel="canonical">` / Open Graph 基础字段。
 - 每条热搜用真实 `<a href="原站链接" target="_blank" rel="noopener noreferrer">`，**禁止** `onclick` 跳转。
+- 默认首页 `/` 是简约版；大胆版入口固定为 `/bold`。不要把旧 Riso 首页重新放回 `/`。
+- `/` 必须尊重 `localStorage` 中的 `moyu-ui-version`：值为 `bold` 时跳转 `/bold`，值为 `simple` 或无值时保留简约版首页。
+- 简约版主题状态使用 `trend-skin`，值为 `vercel` / `dim`；没有缓存时默认 `dim` 暗色主题，并尽量在 CSS 加载前给 `document.documentElement.dataset.skin` 赋值，避免主题闪烁。
 
 ## 4. 岛屿规则
 
@@ -84,17 +89,17 @@ frontend/
 
 ## 5. 设计规范执行清单（每次 PR 自检）
 
-> 常规页面主源：[../doc/摸鱼热榜-趣味Riso风格设计规范.md](../doc/摸鱼热榜-趣味Riso风格设计规范.md)
+> 大胆版 Riso 页面主源：[../doc/摸鱼热榜-趣味Riso风格设计规范.md](../doc/摸鱼热榜-趣味Riso风格设计规范.md)
 >
-> `/ui-new/*` 主源：[../doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](../doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)
+> 简约版 `/` 与 `/ui-new/*` 主源：[../doc/摸鱼热榜-ui-new-Vercel风格设计规范.md](../doc/摸鱼热榜-ui-new-Vercel风格设计规范.md)
 
-### 5.0 `/ui-new/*` 新 UI 设计线
+### 5.0 简约版 UI 设计线
 
-`src/pages/ui-new/**/*.astro` 与 `public/ui-new/**/*.css` 是新的 Vercel-like 简约 UI 设计线，不需要遵守 Riso/Zine 设计规范，也不适用本节的 Riso 自检清单。
+`src/pages/index.astro`、`src/pages/ui-new/**/*.astro` 与 `public/ui-new/**/*.css` 是 Vercel-like 简约 UI 设计线，不需要遵守 Riso/Zine 设计规范，也不适用本节的 Riso 自检清单。
 
 该例外仅限视觉风格：仍必须遵守 Astro 5 + TypeScript + 原生 CSS、SSR 输出真实热榜 HTML、原站真实链接、FastAPI API 边界、禁止直连 SeeSea、禁止新增未确认依赖等工程与安全规则。
 
-`/ui-new/*` 自检：
+简约版自检：
 
 - [ ] 已阅读并遵守 `../doc/摸鱼热榜-ui-new-Vercel风格设计规范.md`
 - [ ] 已判断本次 UI / 交互问题是否属于公共层能力；主题、导航、字体、基础 reset、按钮/输入基础态、页面宽度与间距体系、通用交互逻辑不得散落到单页重复实现
@@ -103,10 +108,11 @@ frontend/
 - [ ] 字体栈为 Geist / Inter / system sans，没有加载 Riso 五套字体
 - [ ] 使用黑白灰 token，强调色克制，不使用糖果色平台卡
 - [ ] 使用 1px hairline、小圆角、轻阴影，不使用 Riso 硬阴影、旋转、胶带、贴纸、印章
-- [ ] 亮暗主题如存在，沿用 `trend-skin` 与 `data-skin="dim"`
+- [ ] 亮暗主题沿用 `trend-skin` 与 `data-skin="dim"`；无缓存默认 `dim`
+- [ ] 版本偏好沿用 `moyu-ui-version`；点击“大胆版”写入 `bold`，点击“简约版”写入 `simple`
 - [ ] 移动端无横向溢出，文本不互相遮挡
 
-常规 Riso 页面自检：
+大胆版 Riso 页面自检：
 
 - [ ] 没有 `#FFFFFF` / `#FFF` / `white` 作为页面或卡片底色（搜索全文，确认 0 命中）
 - [ ] 没有 `box-shadow:` 带 blur 半径 > 0（除 `inset` 边框）
@@ -140,7 +146,7 @@ export async function fetchMarketUs(): Promise<MarketResponse> { ... }
 ```bash
 pnpm astro check    # 类型 + 模板检查，必须 0 error
 pnpm build          # 构建必须通过
-pnpm dev            # 浏览器肉眼验证对应视觉规范
+.\ops\restart.ps1 -Mode docker -Build  # 从仓库根目录启动 Docker 联调环境
 ```
 
-UI 改动**没有浏览器验证过不算完成**。
+浏览器验证必须访问 Docker Nginx 入口：`http://127.0.0.1:18081/`；大胆版访问 `http://127.0.0.1:18081/bold`；`/ui-new/*` 页面访问 `http://127.0.0.1:18081/ui-new/...`。UI 改动**没有在 Docker 环境浏览器验证过不算完成**。AI 不得用 `pnpm dev` 作为默认开发启动方式；如果 Docker 不可用，先说明阻塞原因。

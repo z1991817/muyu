@@ -1,6 +1,6 @@
 # 摸鱼热榜 · 趣味 Riso 风格设计规范
 
-> 基于 `demo7.html` 提炼，适用于后续所有页面延续同一视觉语系。
+> 基于 `demo7.html` 提炼，适用于 `/bold` 大胆版与后续所有 Riso/Zine 页面延续同一视觉语系。
 > 版本：v1.0 · 2026-05-18
 >
 > **生成方式**：本风格由 `frontend-design` skill 在「趣味主题」方向上落地完成。
@@ -14,7 +14,7 @@
 
 ## 0. 设计哲学（Design DNA）
 
-一份"贴在工位的纸质小报 / 独立印刷工坊出品的 Zine"。
+一份"贴在工位的纸质小报 / 独立印刷工坊出品的 Zine"。当前站点默认首页 `/` 是简约版；本规范负责 `/bold` 大胆版与后续明确选择 Riso/Zine 的页面。
 关键词：**纸质感 · 油墨网点 · 手写感 · 错位拼贴 · 糖果色块 · 硬阴影**。
 
 三句话立场（均可在 `demo7.html` 中找到对应实现）：
@@ -185,15 +185,16 @@ transform: rotate(-8deg)   ~ rotate(8deg);  /* 角标 sticker、badge */
     <span>距下班 <b>04:12:38</b></span>
   </div>
   <nav>
-    <a class="active" href="#">首页</a>
-    <a href="#">热榜</a>
-    <a href="#">订阅</a>
-    <a href="#">小工具</a>
+    <a class="active" href="#boards-section">热榜</a>
+    <a href="/about">关于我</a>
+    <a href="/">简约版</a>
   </nav>
 </header>
 ```
 
 要求：印章在最左、面包屑居中、导航靠右；nav 链接用 pill 风格，hover 加 `--yellow` 背景 + 轻微抬升旋转。
+
+当前 `/bold` 顶栏导航顺序固定为：`热榜` / `关于我` / `简约版`。点击“简约版”必须写入 `localStorage.moyu-ui-version = "simple"`，避免用户刷新 `/` 后又被版本偏好带回大胆版。
 
 ### 5.2 报头 `.mast` + `.title` + `.lede` + `.figureCard`
 
@@ -331,7 +332,7 @@ transform: rotate(-8deg)   ~ rotate(8deg);  /* 角标 sticker、badge */
 
 ## 9. 新页面快速开始模板（Skeleton）
 
-新页面落地步骤：
+新 Riso 页面落地步骤：
 
 1. 复制 `demo7.html` 的 `<head>`（字体 + `<style>` 全部 `:root` 变量、`body::before`/`::after` 噪点层、`.topbar`、`.board` 系列样式）。
 2. 在 `.wrap` 容器内组装：
@@ -342,6 +343,7 @@ transform: rotate(-8deg)   ~ rotate(8deg);  /* 角标 sticker、badge */
 3. 按需添加新组件，遵循"圆角 + 粗黑描边 + 硬黑阴影 + 微旋转"四件套。
 4. 颜色优先在已有变量内取，新增色必须先在 `:root` 注册。
 5. 任何新平台块必须使用 6.4 节的色彩映射或同色族。
+6. 不要把 Riso 页面重新设为默认首页 `/`；默认入口属于简约版，Riso 入口固定为 `/bold` 或后续明确命名的大胆版路由。
 
 ---
 
@@ -350,6 +352,7 @@ transform: rotate(-8deg)   ~ rotate(8deg);  /* 角标 sticker、badge */
 发布前对照：
 
 - [ ] 页面背景是 `--paper` 而非纯白
+- [ ] 页面路由不是默认首页 `/`；大胆版当前入口为 `/bold`
 - [ ] 噪点 + 半色调两层叠加都加上了
 - [ ] 至少有 3 处微旋转元素
 - [ ] 主标题用 Ma Shan Zheng，导航用 ZCOOL KuaiLe
