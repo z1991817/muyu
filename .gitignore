@@ -33,6 +33,8 @@ backend/data/
 backend/seesea/.data/
 backend/seesea/**/.data/
 backend/seesea/**/cache/
+!backend/seesea/seesea-core/crates/seesea-cache/src/cache/
+!backend/seesea/seesea-core/crates/seesea-cache/src/cache/**
 !backend/seesea/seesea-core/crates/seesea-config/src/cache/
 !backend/seesea/seesea-core/crates/seesea-config/src/cache/**
 !backend/seesea/seesea/seesea/sdk/cache/
