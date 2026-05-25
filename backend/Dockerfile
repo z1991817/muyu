@@ -1,3 +1,5 @@
+FROM rust:1.89-slim-bookworm AS rust-toolchain
+
 FROM python:3.12-slim-bookworm
 
 WORKDIR /app
@@ -12,14 +14,12 @@ RUN apt-get update \
         curl ca-certificates pkg-config build-essential libssl-dev clang libclang-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ENV RUSTUP_DIST_SERVER=https://rsproxy.cn
-ENV RUSTUP_UPDATE_ROOT=https://rsproxy.cn/rustup
+COPY --from=rust-toolchain /usr/local/cargo /usr/local/cargo
+COPY --from=rust-toolchain /usr/local/rustup /usr/local/rustup
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://rsproxy.cn/rustup-init.sh -o /tmp/rustup-init.sh \
-    && sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain 1.89.0 \
-    && rm /tmp/rustup-init.sh
-
-ENV PATH="/root/.cargo/bin:${PATH}"
+ENV CARGO_HOME=/usr/local/cargo
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV PATH="/usr/local/cargo/bin:${PATH}"
 
 COPY backend/seesea/seesea-core /tmp/seesea-core
 COPY backend/seesea/seesea /tmp/seesea
