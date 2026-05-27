@@ -3,6 +3,7 @@ import UiNewSeo from "../../components/ui-new/UiNewSeo.astro";
 import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
 import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
 import { fetchCnMarket } from "../../lib/api";
+import { cnStockUrl, sinaIndexUrl } from "../../lib/cn-market-links";
 import { SITE_NAME, SITE_URL } from "../../lib/seo";
 import type { CnMarketIndex, CnMarketResponse, CnMarketStock } from "../../lib/types";
 
@@ -35,14 +36,14 @@ const marketData = await Promise.race([
 ]).catch(() => fallbackMarket);
 const indices = marketData.indices;
 const stocks = marketData.stocks;
-const fundFlows = marketData.analysis.fundFlows;
+const marketBreadth = marketData.analysis.fundFlows;
 const limitUp = marketData.analysis.limitUp;
 const limitDown = marketData.analysis.limitDown;
 const updatedAt = marketData.updatedAt || nowIso;
 const disclaimer =
   indices[0]?.disclaimer || stocks[0]?.disclaimer || "行情仅供查看，不构成投资建议";
 const pageTitle = "A股行情 - 大盘指数与热门股票 | 摸鱼热榜";
-const pageDescription = "查看 A股大盘指数、热门股票、资金动向、涨停股票和跌停股票，快速了解今天市场热不热。";
+const pageDescription = "查看 A股大盘指数、热门股票、市场广度、涨停股票和跌停股票，快速了解今天市场热不热。";
 function formatSigned(value: number): string {
   const fixed = Math.abs(value).toFixed(2);
   return value >= 0 ? `+${fixed}` : `-${fixed}`;
@@ -56,6 +57,17 @@ function formatPrice(value: number): string {
   return value.toLocaleString("zh-CN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  });
+}
+
+function formatNumericValue(value: string): string {
+  const normalized = value.trim().replaceAll(",", "");
+  if (!/^[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?$/i.test(normalized)) return value;
+  const numericValue = Number(normalized);
+  if (!Number.isFinite(numericValue)) return value;
+  return numericValue.toLocaleString("zh-CN", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
   });
 }
 
@@ -85,33 +97,6 @@ function movementClass(item: CnMarketIndex | CnMarketStock): string {
   return item.changePct >= 0 ? "is-up" : "is-down";
 }
 
-const SINA_INDEX_SYMBOLS: Record<string, string> = {
-  "000001": "sh000001",
-  "000300": "sh000300",
-  "000905": "sh000905",
-  "000688": "sh000688",
-};
-
-function sinaMarketPrefix(symbol: string): "sh" | "sz" | "bj" {
-  if (/^(6|5|9)/.test(symbol)) return "sh";
-  if (/^(8|4)/.test(symbol)) return "bj";
-  return "sz";
-}
-
-function sinaStockUrl(symbol: string): string {
-  const normalized = symbol.trim();
-  if (!/^\d{6}$/.test(normalized)) return "https://finance.sina.com.cn/";
-  const prefix = sinaMarketPrefix(normalized);
-  return `https://finance.sina.com.cn/realstock/company/${prefix}${normalized}/nc.shtml`;
-}
-
-function sinaIndexUrl(symbol: string): string {
-  const normalized = symbol.trim();
-  const sinaSymbol = SINA_INDEX_SYMBOLS[normalized];
-  if (!sinaSymbol) return "https://finance.sina.com.cn/stock/";
-  return `https://finance.sina.com.cn/realstock/company/${sinaSymbol}/nc.shtml`;
-}
-
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
@@ -124,7 +109,7 @@ const structuredData = {
     name: SITE_NAME,
     url: SITE_URL,
   },
-  about: ["A股行情", "大盘指数", "热门股票", "资金动向", "涨停股票", "跌停股票"],
+  about: ["A股行情", "大盘指数", "热门股票", "市场广度", "涨停股票", "跌停股票"],
   hasPart: [
     {
       "@type": "ItemList",
@@ -145,7 +130,7 @@ const structuredData = {
         "@type": "ListItem",
         position: index + 1,
         name: `${item.name} ${item.symbol}`,
-        url: sinaStockUrl(item.symbol),
+        url: cnStockUrl(item),
       })),
     },
   ],
@@ -177,6 +162,9 @@ function fieldDisplayValue(key: string, value: unknown): string {
   if (key === "direction") {
     if (value === "in") return "流入";
     if (value === "out") return "流出";
+  }
+  if (key === "changePct" && typeof value === "number") {
+    return formatPercent(value);
   }
   return compactValue(value);
 }
@@ -248,13 +236,13 @@ function stockDetailFields(item: CnMarketStock): FieldEntry[] {
 }
 
 function limitDetailFields(item: unknown): FieldEntry[] {
-  return standardFields(item, ["symbol", "changePct"]).concat(
+  return standardFields(item, ["symbol"]).concat(
     extraFields(item, ["symbol", "name", "price", "changePct", "reason", "url"]),
   );
 }
 
 function fundFlowDetailFields(item: unknown): FieldEntry[] {
-  return standardFields(item, ["direction"]).concat(
+  return standardFields(item, []).concat(
     extraFields(item, ["name", "value", "changePct", "direction"]),
   );
 }
@@ -321,7 +309,7 @@ function sparkPoints(seed: string, up: boolean): string {
         <header class="market-hero">
           <div class="hero-copy">
             <h1>A股行情</h1>
-            <p>看一眼大盘涨跌、热门股票和资金动向，快速了解今天市场热不热。</p>
+            <p>看一眼大盘涨跌、热门股票和市场广度，快速了解今天市场热不热。</p>
           </div>
           <div class="market-meta" aria-label="行情更新时间">
             <span>最近刷新 {formatUpdatedTime(updatedAt)}</span>
@@ -395,7 +383,7 @@ function sparkPoints(seed: string, up: boolean): string {
                 const up = item.changePct >= 0;
                 const details = stockDetailFields(item);
                 return (
-                  <a class:list={["stock-row", movementClass(item)]} href={sinaStockUrl(item.symbol)} target="_blank" rel="noopener noreferrer" role="row">
+                  <a class:list={["stock-row", movementClass(item)]} href={cnStockUrl(item)} target="_blank" rel="noopener noreferrer" role="row">
                     <span class="stock-name" role="cell">
                       <strong>{item.symbol}</strong>
                       <small>{item.name}</small>
@@ -438,19 +426,19 @@ function sparkPoints(seed: string, up: boolean): string {
           <div class="analysis-grid">
             <article class="analysis-card">
               <div class="analysis-card-head">
-                <h3>资金动向（万元）</h3>
+                <h3>市场广度</h3>
               </div>
               <div class="analysis-list">
-                {fundFlows.length > 0 ? fundFlows.map((item) => (
-                  <div class:list={["analysis-row", item.direction === "out" ? "is-down" : "is-up"]}>
+                {marketBreadth.length > 0 ? marketBreadth.map((item) => (
+                  <div class:list={["analysis-row", item.direction === "out" ? "is-down" : item.direction === "flat" ? "" : "is-up"]}>
                     <span>{item.name}</span>
-                    <strong title={`${item.value} 元`}>{formatTenThousandYuan(item.value)}</strong>
-                    <small>{formatPercent(item.changePct)}</small>
+                    <strong title={item.value}>{formatNumericValue(item.value)}</strong>
+                    <small>占比 {formatPercent(item.changePct)}</small>
                     {fundFlowDetailFields(item).map((field) => (
                       <small title={field.value}>{field.label}: {field.value}</small>
                     ))}
                   </div>
-                )) : <p>暂时还没有资金动向。</p>}
+                )) : <p>暂时还没有市场广度。</p>}
               </div>
             </article>
 
@@ -462,10 +450,11 @@ function sparkPoints(seed: string, up: boolean): string {
                 {limitUp.length > 0 ? limitUp.map((item) => {
                   const details = limitDetailFields(item);
                   return (
-                    <a class="analysis-row is-up" href={sinaStockUrl(item.symbol)} target="_blank" rel="noopener noreferrer">
+                    <a class="analysis-row is-up" href={cnStockUrl(item)} target="_blank" rel="noopener noreferrer">
                       <span>{item.name}</span>
                       <strong>{formatPrice(item.price)}</strong>
                       <small>{item.reason}</small>
+                      <small>{formatPercent(item.changePct)}</small>
                       {details.map((field) => (
                         <small title={field.value}>{field.label}: {field.value}</small>
                       ))}
@@ -483,10 +472,11 @@ function sparkPoints(seed: string, up: boolean): string {
                 {limitDown.length > 0 ? limitDown.map((item) => {
                   const details = limitDetailFields(item);
                   return (
-                    <a class="analysis-row is-down" href={sinaStockUrl(item.symbol)} target="_blank" rel="noopener noreferrer">
+                    <a class="analysis-row is-down" href={cnStockUrl(item)} target="_blank" rel="noopener noreferrer">
                       <span>{item.name}</span>
                       <strong>{formatPrice(item.price)}</strong>
                       <small>{item.reason}</small>
+                      <small>{formatPercent(item.changePct)}</small>
                       {details.map((field) => (
                         <small title={field.value}>{field.label}: {field.value}</small>
                       ))}

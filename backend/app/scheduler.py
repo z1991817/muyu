@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from contextlib import suppress
 from datetime import UTC, datetime, time
 from typing import Protocol
+from zoneinfo import ZoneInfo
 
 from app.cache.policy import market_ttl_seconds
 from app.cache.sqlite import SQLiteCache
 from app.clients.akshare import AkShareClient, AkShareError
+from app.clients.cn_market import CnMarketClient, CnMarketError
 from app.clients.seesea import SeeSeaClient, SeeSeaError
 from app.config import settings
 from app.lib.china_holidays import get_china_rest_day_info
@@ -23,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 INITIAL_REFRESH_DELAY_SECONDS = 10
 CN_MARKET_REFRESH_TIMEOUT_SECONDS = 120
+CHINA_TIME_ZONE = ZoneInfo("Asia/Shanghai")
 
 
 class CnMarketFetcher(Protocol):
@@ -44,6 +48,27 @@ def _market_open() -> bool:
 def _refresh_interval() -> int:
     """交易时段 3 分钟，非交易时段 30 分钟。"""
     return 180 if _market_open() else 1800
+
+
+def _cn_market_open(moment: datetime | None = None) -> bool:
+    if moment is None:
+        moment = datetime.now(UTC)
+
+    china_moment = moment.astimezone(CHINA_TIME_ZONE)
+    if get_china_rest_day_info(china_moment).is_rest_day:
+        return False
+
+    current_time = china_moment.time()
+    return time(9, 30) <= current_time <= time(11, 30) or time(13, 0) <= current_time <= time(15, 0)
+
+
+def cn_market_refresh_interval_seconds(moment: datetime | None = None) -> int:
+    """A 股交易时段 3 分钟，非交易时段 30 分钟。"""
+    return 180 if _cn_market_open(moment) else 1800
+
+
+def _cn_market_status(moment: datetime | None = None) -> str:
+    return "open" if _cn_market_open(moment) else "closed"
 
 
 async def _refresh_trends(
@@ -141,19 +166,19 @@ async def _refresh_stocks(
 
 
 async def _refresh_cn_market(
-    seesea: CnMarketFetcher,
+    cn_market: CnMarketFetcher,
     cache: SQLiteCache,
 ) -> CnMarketResponse | None:
     try:
         response = await asyncio.wait_for(
-            seesea.fetch_cn_market(),
+            cn_market.fetch_cn_market(),
             timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
         )
         response = await _merge_cn_market_cache_on_partial_empty(response, cache)
         await cache.set(
             "market:cn",
             response.model_dump(mode="json"),
-            ttl_seconds=market_ttl_seconds("open"),
+            ttl_seconds=market_ttl_seconds(_cn_market_status()),
             source_status="ok",
         )
         logger.info(
@@ -164,12 +189,14 @@ async def _refresh_cn_market(
         return response
     except SeeSeaError as e:
         logger.warning("scheduler: cn market refresh failed: %s", e)
+    except CnMarketError as e:
+        logger.warning("scheduler: cn market refresh failed: %s", e)
     except TimeoutError:
         logger.warning("scheduler: cn market refresh timed out")
 
     try:
         snapshot = await asyncio.wait_for(
-            seesea.fetch_cn_market_recent_trade_snapshot(),
+            cn_market.fetch_cn_market_recent_trade_snapshot(),
             timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
         )
         snapshot = await _merge_cn_market_cache_on_partial_empty(snapshot, cache)
@@ -186,6 +213,9 @@ async def _refresh_cn_market(
         )
         return snapshot
     except SeeSeaError as e:
+        logger.warning("scheduler: cn market snapshot refresh failed: %s", e)
+        return None
+    except CnMarketError as e:
         logger.warning("scheduler: cn market snapshot refresh failed: %s", e)
         return None
     except TimeoutError:
@@ -217,13 +247,15 @@ async def _merge_cn_market_cache_on_partial_empty(
     updates: dict[str, object] = {}
     if not response.indices and cached_response.indices:
         updates["indices"] = cached_response.indices
-    if not response.stocks and cached_response.stocks:
+    if (
+        (not response.stocks or _cn_market_stocks_missing_volume_or_turnover(response.stocks))
+        and cached_response.stocks
+        and not _cn_market_stocks_missing_volume_or_turnover(cached_response.stocks)
+    ):
         updates["stocks"] = cached_response.stocks
 
     analysis = response.analysis
     analysis_updates: dict[str, object] = {}
-    if not analysis.fund_flows and cached_response.analysis.fund_flows:
-        analysis_updates["fund_flows"] = cached_response.analysis.fund_flows
     if not analysis.limit_up and cached_response.analysis.limit_up:
         analysis_updates["limit_up"] = cached_response.analysis.limit_up
     if not analysis.limit_down and cached_response.analysis.limit_down:
@@ -238,9 +270,17 @@ async def _merge_cn_market_cache_on_partial_empty(
     return response.model_copy(update=updates)
 
 
+def _cn_market_stocks_missing_volume_or_turnover(stocks: Sequence[object]) -> bool:
+    return bool(stocks) and any(
+        getattr(item, "volume", "-") == "-" or getattr(item, "turnover", "-") == "-"
+        for item in stocks
+    )
+
+
 async def _refresh_all(
     seesea: SeeSeaClient,
     akshare: AkShareClient,
+    cn_market: CnMarketClient,
     cache: SQLiteCache,
     default_platforms: list[str],
 ) -> None:
@@ -251,7 +291,7 @@ async def _refresh_all(
         _refresh_stocks(akshare, cache),
     ]
     if settings.cn_market_scheduler_enabled:
-        refresh_tasks.append(_refresh_cn_market(seesea, cache))
+        refresh_tasks.append(_refresh_cn_market(cn_market, cache))
 
     results = await asyncio.gather(*refresh_tasks, return_exceptions=True)
     trends_result = results[0]
@@ -284,10 +324,11 @@ async def run_refresh_loop(app) -> None:  # type: ignore[no-untyped-def]
     cache: SQLiteCache = app.state.cache
     seesea: SeeSeaClient = app.state.seesea_client
     akshare: AkShareClient = app.state.akshare_client
+    cn_market: CnMarketClient = app.state.cn_market_client
     default_platforms: list[str] = app.state.default_platforms
 
     await asyncio.sleep(INITIAL_REFRESH_DELAY_SECONDS)
-    await _refresh_all(seesea, akshare, cache, default_platforms)
+    await _refresh_all(seesea, akshare, cn_market, cache, default_platforms)
 
     while True:
         interval = _refresh_interval()
@@ -298,7 +339,7 @@ async def run_refresh_loop(app) -> None:  # type: ignore[no-untyped-def]
         )
         await asyncio.sleep(interval)
 
-        await _refresh_all(seesea, akshare, cache, default_platforms)
+        await _refresh_all(seesea, akshare, cn_market, cache, default_platforms)
 
 
 def start_scheduler(app) -> asyncio.Task[None]:  # type: ignore[no-untyped-def]

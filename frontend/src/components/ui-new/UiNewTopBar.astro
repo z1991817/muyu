@@ -81,6 +81,15 @@ const navItems: NavItem[] = [
       </svg>
     </button>
 
+    {active === "home" && (
+      <button class="ui-new-home-settings-toggle" type="button" aria-label="打开首页设置" title="首页设置" data-settings-open>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.6a1.45 1.45 0 0 0-1.39 1.03l-.28.92a1.25 1.25 0 0 1-.72.78l-.12.05a1.25 1.25 0 0 1-1.07-.05l-.86-.43a1.45 1.45 0 0 0-1.72.29l-.65.65a1.45 1.45 0 0 0-.29 1.72l.43.86c.17.34.19.73.05 1.07l-.05.12a1.25 1.25 0 0 1-.78.72l-.92.28A1.45 1.45 0 0 0 3.6 12c0 .64.42 1.2 1.03 1.39l.92.28c.35.11.64.37.78.72l.05.12c.14.34.12.73-.05 1.07l-.43.86a1.45 1.45 0 0 0 .29 1.72l.65.65c.46.46 1.16.57 1.72.29l.86-.43c.34-.17.73-.19 1.07-.05l.12.05c.35.14.61.43.72.78l.28.92A1.45 1.45 0 0 0 12 20.4c.64 0 1.2-.42 1.39-1.03l.28-.92c.11-.35.37-.64.72-.78l.12-.05c.34-.14.73-.12 1.07.05l.86.43c.57.28 1.26.17 1.72-.29l.65-.65c.46-.46.57-1.16.29-1.72l-.43-.86a1.25 1.25 0 0 1-.05-1.07l.05-.12c.14-.35.43-.61.78-.72l.92-.28A1.45 1.45 0 0 0 20.4 12c0-.64-.42-1.2-1.03-1.39l-.92-.28a1.25 1.25 0 0 1-.78-.72l-.05-.12a1.25 1.25 0 0 1 .05-1.07l.43-.86a1.45 1.45 0 0 0-.29-1.72l-.65-.65a1.45 1.45 0 0 0-1.72-.29l-.86.43c-.34.17-.73.19-1.07.05l-.12-.05a1.25 1.25 0 0 1-.72-.78l-.28-.92A1.45 1.45 0 0 0 12 3.6Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.75" />
+        </svg>
+      </button>
+    )}
+
     <button class="ui-new-theme-toggle" type="button" aria-label="切换暗色主题" title="切换暗色主题" data-ui-new-theme-toggle>
       <svg class="ui-new-theme-icon ui-new-theme-icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M20.2 15.5A8.4 8.4 0 0 1 8.5 3.8 8.9 8.9 0 1 0 20.2 15.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -422,6 +431,7 @@ const navItems: NavItem[] = [
     display: none;
   }
 
+  .ui-new-home-settings-toggle,
   .ui-new-theme-toggle {
     position: relative;
     display: grid;
@@ -438,6 +448,7 @@ const navItems: NavItem[] = [
     transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
   }
 
+  .ui-new-home-settings-toggle:hover,
   .ui-new-theme-toggle:hover {
     border-color: var(--border-light);
     background: var(--muted-background);
@@ -445,8 +456,15 @@ const navItems: NavItem[] = [
     transform: translateY(-1px);
   }
 
+  .ui-new-home-settings-toggle:focus-visible,
   .ui-new-theme-toggle:focus-visible {
     box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
+
+  .ui-new-home-settings-toggle svg {
+    display: block;
+    width: 17px;
+    height: 17px;
   }
 
   .ui-new-theme-icon {

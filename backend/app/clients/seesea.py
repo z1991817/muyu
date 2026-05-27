@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -98,6 +99,7 @@ class SeeSeaClient:
         self._sdk_client: object | None = None
         self._stock_sdk_client: object | None = None
         self._stock_sdk_lock = asyncio.Lock()
+        self._akshare_stock_lock = asyncio.Lock()
         self._enable_hot_sdk_fallback = enable_hot_sdk_fallback
         self._enable_stock_sdk_fallback = enable_stock_sdk_fallback
 
@@ -164,12 +166,14 @@ class SeeSeaClient:
                 None,
                 "get_index_list",
                 fallback_sdk_method="get_index_list",
+                akshare_fallback="stock_zh_index_spot_em",
             ),
             self._fetch_stock_data(
                 "/api/stock/list/a",
                 None,
                 "_fetch_recent_cn_stock_history",
                 last_trade_date,
+                akshare_fallback="stock_zh_a_spot",
             ),
             self._fetch_stock_data("/api/stock/fund_flow", None, "get_market_fund_flow"),
             self._fetch_stock_data(
@@ -195,9 +199,32 @@ class SeeSeaClient:
         )
 
         indices = _map_primary_cn_indices(_iter_dict_items(indices_raw), now)
+        if self._enable_stock_sdk_fallback and not indices:
+            try:
+                fallback_indices_raw = await self._fetch_eastmoney_cn_indices()
+                indices = _map_primary_cn_indices(_iter_dict_items(fallback_indices_raw), now)
+            except SeeSeaError:
+                pass
         stocks = [_map_cn_stock(item, now) for item in _iter_dict_items(quotes_raw)]
         stocks = [item for item in stocks if item is not None]
         stocks.sort(key=lambda item: abs(item.change_pct), reverse=True)
+        if self._enable_stock_sdk_fallback and (
+            len(stocks) < _CN_MARKET_STOCK_LIMIT or _stocks_missing_market_metrics(stocks)
+        ):
+            try:
+                live_quotes_raw = await self._run_akshare_stock("stock_zh_a_spot")
+                live_stocks = [
+                    item
+                    for item in (
+                        _map_cn_stock(raw, now) for raw in _iter_dict_items(live_quotes_raw)
+                    )
+                    if item is not None
+                ]
+                if live_stocks:
+                    live_stocks.sort(key=lambda item: abs(item.change_pct), reverse=True)
+                    stocks = live_stocks
+            except SeeSeaError:
+                pass
         limit_up_all = [
             item
             for item in (_map_cn_limit_stock(raw) for raw in _iter_dict_items(limit_up_raw))
@@ -408,8 +435,68 @@ class SeeSeaClient:
 
     async def _run_akshare_stock(self, method: str, *args: object) -> object:
         try:
-            return await asyncio.to_thread(_run_akshare_stock_sync, method, *args)
+            async with self._akshare_stock_lock:
+                return await asyncio.to_thread(_run_akshare_stock_sync, method, *args)
         except Exception as exc:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
+
+    async def _fetch_eastmoney_cn_indices(self) -> object:
+        try:
+            tencent = await self._fetch_tencent_cn_indices()
+            if _iter_dict_items(tencent):
+                return tencent
+        except SeeSeaError:
+            pass
+
+        try:
+            sina = await self._fetch_sina_cn_indices()
+            if _iter_dict_items(sina):
+                return sina
+        except SeeSeaError:
+            pass
+
+        params = {
+            "fltt": "2",
+            "invt": "2",
+            "fields": "f12,f14,f2,f3,f4",
+            "secids": "1.000001,1.000300,1.000905",
+        }
+        try:
+            response = await self._client.get(
+                "https://push2.eastmoney.com/api/qt/ulist.np/get",
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
+
+    async def _fetch_tencent_cn_indices(self) -> object:
+        try:
+            response = await self._client.get("https://qt.gtimg.cn/q=sh000001,sh000300,sh000905")
+            response.raise_for_status()
+            items = _parse_tencent_cn_index_text(response.text)
+            if not items:
+                raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+            return items
+        except (httpx.HTTPError, SeeSeaError) as exc:
+            raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
+
+    async def _fetch_sina_cn_indices(self) -> object:
+        try:
+            response = await self._client.get(
+                "https://hq.sinajs.cn/list=s_sh000001,s_sh000300,s_sh000905",
+                headers={
+                    "Referer": "https://finance.sina.com.cn/",
+                    "User-Agent": "Mozilla/5.0",
+                },
+            )
+            response.raise_for_status()
+            items = _parse_sina_cn_index_text(response.text)
+            if not items:
+                raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用")
+            return items
+        except (httpx.HTTPError, SeeSeaError) as exc:
             raise SeeSeaError("SEESEA_UPSTREAM", "上游数据源暂不可用") from exc
 
     def _parse_multi_payload(self, payload: object) -> list[Trend]:
@@ -515,6 +602,12 @@ def _iter_dict_items(payload: object) -> list[dict[str, object]]:
         result = payload.get("result")
         if isinstance(result, list):
             return [item for item in result if isinstance(item, dict)]
+        diff = payload.get("diff")
+        if isinstance(diff, list):
+            return [item for item in diff if isinstance(item, dict)]
+        nested_data = data.get("diff") if isinstance(data, dict) else None
+        if isinstance(nested_data, list):
+            return [item for item in nested_data if isinstance(item, dict)]
     return []
 
 
@@ -539,8 +632,8 @@ def _number(raw: dict[str, object], *keys: str, default: float = 0.0) -> float:
 
 
 def _is_primary_cn_index(raw: dict[str, object]) -> bool:
-    symbol = _text(raw, "代码", "code", "symbol", "指数代码")
-    name = _text(raw, "名称", "name", "指数名称")
+    symbol = _normalize_cn_symbol(_text(raw, "代码", "code", "symbol", "指数代码", "f12"))
+    name = _text(raw, "名称", "name", "指数名称", "f14")
     return name in _CN_INDEX_NAMES or symbol in _CN_INDEX_SYMBOLS
 
 
@@ -551,7 +644,12 @@ def _map_primary_cn_indices(items: list[dict[str, object]], updated_at: str) -> 
 
     for symbol in preferred_symbols:
         item = next(
-            (raw for raw in items if _text(raw, "代码", "code", "symbol", "指数代码") == symbol),
+            (
+                raw
+                for raw in items
+                if _normalize_cn_symbol(_text(raw, "代码", "code", "symbol", "指数代码", "f12"))
+                == symbol
+            ),
             None,
         )
         if item is None:
@@ -573,30 +671,78 @@ def _map_primary_cn_indices(items: list[dict[str, object]], updated_at: str) -> 
 
 
 def _stock_url(symbol: str) -> str:
-    return (
-        f"https://quote.eastmoney.com/{symbol}.html" if symbol else "https://quote.eastmoney.com/"
-    )
+    if not symbol:
+        return "https://quote.eastmoney.com/"
+    if symbol.startswith(("8", "4", "9")):
+        return f"https://quote.eastmoney.com/bj/{symbol}.html"
+    return f"https://quote.eastmoney.com/{symbol}.html"
 
 
 def _map_cn_index(raw: dict[str, object], updated_at: str) -> CnMarketIndex | None:
-    symbol = _text(raw, "代码", "code", "symbol", "指数代码")
-    name = _text(raw, "名称", "name", "指数名称")
+    symbol = _normalize_cn_symbol(_text(raw, "代码", "code", "symbol", "指数代码", "f12"))
+    name = _text(raw, "名称", "name", "指数名称", "f14")
     if not name:
         return None
     return CnMarketIndex(
         symbol=symbol or name,
         name=name,
-        price=_number(raw, "最新价", "price", "current_price", "最新"),
-        change=_number(raw, "涨跌额", "change", "change_amount"),
-        change_pct=_number(raw, "涨跌幅", "change_pct", "change_percent", "涨跌幅"),
+        price=_number(raw, "最新价", "price", "current_price", "最新", "f2"),
+        change=_number(raw, "涨跌额", "change", "change_amount", "f4"),
+        change_pct=_number(raw, "涨跌幅", "change_pct", "change_percent", "f3"),
         url=_stock_url(symbol),
         updated_at=updated_at,
         disclaimer=settings.market_disclaimer,
     )
 
 
+def _normalize_cn_symbol(symbol: str) -> str:
+    value = symbol.strip()
+    if "." in value:
+        value = value.split(".", 1)[0]
+    lower = value.lower()
+    if lower.startswith(("sh", "sz", "bj")) and len(value) > 2:
+        value = value[2:]
+    return value
+
+
+def _parse_tencent_cn_index_text(text: str) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    for match in re.finditer(r'v_(?:sh|sz)\d+="([^"]*)"', text):
+        parts = match.group(1).split("~")
+        if len(parts) < 34:
+            continue
+        items.append(
+            {
+                "代码": parts[2],
+                "名称": parts[1],
+                "最新价": parts[3],
+                "涨跌额": parts[31],
+                "涨跌幅": parts[32],
+            }
+        )
+    return items
+
+
+def _parse_sina_cn_index_text(text: str) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    for match in re.finditer(r'var hq_str_s_(?:sh|sz)(\d+)="([^"]*)"', text):
+        parts = match.group(2).split(",")
+        if len(parts) < 4:
+            continue
+        items.append(
+            {
+                "代码": match.group(1),
+                "名称": parts[0],
+                "最新价": parts[1],
+                "涨跌额": parts[2],
+                "涨跌幅": parts[3],
+            }
+        )
+    return items
+
+
 def _map_cn_stock(raw: dict[str, object], updated_at: str) -> CnMarketStock | None:
-    symbol = _text(raw, "代码", "code", "symbol")
+    symbol = _normalize_cn_symbol(_text(raw, "代码", "code", "symbol"))
     name = _text(raw, "名称", "name")
     if not symbol or not name:
         return None
@@ -612,6 +758,10 @@ def _map_cn_stock(raw: dict[str, object], updated_at: str) -> CnMarketStock | No
         updated_at=updated_at,
         disclaimer=settings.market_disclaimer,
     )
+
+
+def _stocks_missing_market_metrics(stocks: list[CnMarketStock]) -> bool:
+    return bool(stocks) and all(item.volume == "-" and item.turnover == "-" for item in stocks)
 
 
 def _map_cn_stock_history(
@@ -737,9 +887,24 @@ def _map_cn_limit_stock(raw: dict[str, object]) -> CnLimitStock | None:
         name=name,
         price=_number(raw, "最新价", "price", "current_price"),
         change_pct=_number(raw, "涨跌幅", "change_pct", "change_percent"),
-        reason=_text(raw, "涨停原因", "跌停原因", "原因", "reason", default="市场异动"),
+        reason=_limit_reason(raw),
         url=_stock_url(symbol),
     )
+
+
+def _limit_reason(raw: dict[str, object]) -> str:
+    explicit_reason = _text(raw, "涨停原因", "跌停原因", "原因", "reason")
+    if explicit_reason:
+        return explicit_reason
+
+    industry = _text(raw, "所属行业", "行业")
+    consecutive = _text(raw, "连板数", "连续跌停")
+    if industry and consecutive and consecutive not in {"0", "0.0"}:
+        suffix = "连板" if _number(raw, "涨跌幅") >= 0 else "连跌"
+        return f"{industry} · {consecutive}{suffix}"
+    if industry:
+        return industry
+    return "市场异动"
 
 
 def _supplement_market_stocks_from_limit_stocks(

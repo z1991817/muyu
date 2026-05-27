@@ -200,13 +200,19 @@ moyu/
    - 通用命令：`docker compose -f ops/docker-compose.yml up -d --build`；停止用 `docker compose -f ops/docker-compose.yml down --remove-orphans`。
    - 浏览器验证默认访问 Nginx 入口：`http://127.0.0.1:18081/`；大胆版访问 `http://127.0.0.1:18081/bold`；`/ui-new/*` 访问 `http://127.0.0.1:18081/ui-new/...`。
    - 如果 Docker 不可用，AI 必须暂停并说明阻塞原因，不得静默 fallback 到本机 dev server。
-7. **提交前**：
+7. **发布 / 线上部署**：
+   - 线上发布流程固定为：本地构建 Docker 镜像 → 推送到腾讯云容器镜像仓库 → 服务器拉取镜像并用 Docker Compose 启动；服务器不再作为默认构建机。
+   - 本地构建与推送优先使用 `.\ops\build-images.ps1 -Version vN -Push`，镜像默认推送到 `hkccr.ccs.tencentyun.com/moyu`，同时打日期版本 tag（如 `20260526-v1`）与 `latest`。
+   - 只发布部分服务时使用 `-Service api` / `-Service frontend` / `-Service nginx` / `-Service seesea`，禁止在服务器临时手改镜像内容或进入容器内补丁式发布。
+   - 服务器部署只允许执行 `docker compose -f ops/docker-compose.yml pull` + `docker compose -f ops/docker-compose.yml up -d`（或等价的已确认部署脚本），再检查 `docker compose -f ops/docker-compose.yml ps` 与关键接口。
+   - A 股行情修复上线后，必须在服务器执行一次 `docker compose -f ops/docker-compose.yml exec -T api python -m app.jobs.refresh_cn_market` 并验证 `/api/market/cn`。
+8. **提交前**：
    - 检查是否触发本文件任一 ❌；
    - 检查是否引入了未列入红线允许的依赖；
    - 检查 SeeSea 字段是否经过 `SeeSeaClient` 映射，未透传到前端；
    - 检查本次问题是否只是局部现象；如属于公共层问题，必须同步抽公共能力或更新规范，避免下次靠用户再次提醒。
    - 检查大胆版 UI 是否符合 Riso 设计规范（旋转、阴影、字体、平台色）；检查简约版是否符合 Vercel 风格设计规范（黑白灰 token、1px hairline、小圆角、轻阴影、Geist/system 字体、简约信息密度、主题/版本缓存）。
-8. **commit message**：使用 conventional commits（`feat(frontend): ...` / `fix(backend): ...` / `docs: ...` / `chore(ops): ...`）。
+9. **commit message**：使用 conventional commits（`feat(frontend): ...` / `fix(backend): ...` / `docs: ...` / `chore(ops): ...`）。
 
 ---
 

@@ -15,6 +15,7 @@ from app.api import (
 )
 from app.cache.sqlite import SQLiteCache
 from app.clients.akshare import AkShareClient
+from app.clients.cn_market import CnMarketClient
 from app.clients.seesea import SeeSeaClient
 from app.clients.umami import UmamiClient
 from app.config import settings
@@ -31,6 +32,7 @@ async def lifespan(app: FastAPI):
         enable_stock_sdk_fallback=settings.seesea_stock_sdk_fallback_enabled
     )
     app.state.akshare_client = AkShareClient()
+    app.state.cn_market_client = CnMarketClient()
     app.state.umami_client = UmamiClient()
     app.state.default_platforms = settings.seesea_default_platforms
 
@@ -41,6 +43,7 @@ async def lifespan(app: FastAPI):
         await stop_scheduler(scheduler_task)
         await app.state.seesea_client.aclose()
         await app.state.akshare_client.aclose()
+        await app.state.cn_market_client.aclose()
         await app.state.umami_client.aclose()
 
 

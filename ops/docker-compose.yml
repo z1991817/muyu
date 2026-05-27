@@ -52,10 +52,7 @@ services:
       api:
         condition: service_healthy
     command: >
-      sh -lc "while true; do
-        timeout ${CN_MARKET_REFRESH_TIMEOUT_SECONDS:-180} python -m app.jobs.refresh_cn_market || true;
-        sleep ${CN_MARKET_REFRESH_INTERVAL_SECONDS:-1800};
-      done"
+      python -c "from app.jobs.refresh_cn_market import loop_main; loop_main()"
     restart: unless-stopped
 
   frontend:
