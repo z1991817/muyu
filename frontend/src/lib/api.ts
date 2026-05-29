@@ -1,4 +1,5 @@
 ﻿import type {
+  AiNewsResponse,
   CnMarketResponse,
   HomeResponse,
   MarketResponse,
@@ -43,4 +44,8 @@ export async function fetchUsStocks(): Promise<StocksResponse> {
 
 export async function fetchCnMarket(): Promise<CnMarketResponse> {
   return requestJSON<CnMarketResponse>("/market/cn");
+}
+
+export async function fetchAiNews(date: string): Promise<AiNewsResponse> {
+  return requestJSON<AiNewsResponse>(`/ai-news?date=${encodeURIComponent(date)}`);
 }

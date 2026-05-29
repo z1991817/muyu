@@ -3,6 +3,7 @@ type NavItem = {
   href: string;
   label: string;
   id: string;
+  description?: string;
   children?: NavItem[];
 };
 
@@ -15,13 +16,23 @@ const onlineApiBase = import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api"
 
 const navItems: NavItem[] = [
   { href: "/", label: "首页", id: "home" },
+  { href: "/ui-new/ai-news", label: "AI 日报", id: "ai-news" },
+  { href: "/ui-new/chat", label: "AI 助手", id: "chat" },
   {
     href: "/ui-new/finance",
     label: "理财",
     id: "finance",
     children: [
-      { href: "/ui-new/a-share", label: "A股", id: "a-share" },
-      { href: "/ui-new/finance", label: "美股", id: "finance" },
+      { href: "/ui-new/a-share", label: "A股", id: "a-share", description: "沪深行情与市场分析" },
+      { href: "/ui-new/finance", label: "美股", id: "finance", description: "三大指数与热门个股" },
+    ],
+  },
+  {
+    href: "/ui-new/toolbox",
+    label: "工具箱",
+    id: "toolbox",
+    children: [
+      { href: "/ui-new/toolbox/commands", label: "命令手册", id: "toolbox-commands", description: "AI 工具常用指令速查" },
     ],
   },
   { href: "/ui-new/about", label: "关于", id: "about" },
@@ -53,11 +64,11 @@ const navItems: NavItem[] = [
                   <path d="M4.5 6.5 8 10l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </a>
-              <div class="ui-new-nav-menu" role="menu" aria-label="理财市场" data-ui-new-nav-menu>
+              <div class="ui-new-nav-menu" role="menu" aria-label={item.label} data-ui-new-nav-menu>
                 {item.children.map((child) => (
                   <a class:list={[{ active: active === child.id }]} href={child.href} role="menuitem">
                     <span>{child.label}</span>
-                    <small>{child.id === "a-share" ? "沪深行情与市场分析" : "三大指数与热门个股"}</small>
+                    {child.description && <small>{child.description}</small>}
                   </a>
                 ))}
               </div>
@@ -104,8 +115,11 @@ const navItems: NavItem[] = [
 
   <nav class="ui-new-mobile-nav" aria-label="移动端主导航" hidden data-ui-new-mobile-nav>
     <a class:list={[{ active: active === "home" }]} href="/">首页</a>
+    <a class:list={[{ active: active === "ai-news" }]} href="/ui-new/ai-news">AI 日报</a>
+    <a class:list={[{ active: active === "chat" }]} href="/ui-new/chat">AI 助手</a>
     <a class:list={[{ active: active === "a-share" }]} href="/ui-new/a-share">A股</a>
     <a class:list={[{ active: active === "finance" }]} href="/ui-new/finance">美股</a>
+    <a class:list={[{ active: active === "toolbox" || active === "toolbox-commands" }]} href="/ui-new/toolbox">工具箱</a>
     <a class:list={[{ active: active === "about" }]} href="/ui-new/about">关于</a>
   </nav>
 </header>
@@ -530,7 +544,7 @@ const navItems: NavItem[] = [
 
     .ui-new-mobile-nav {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
       border-top: 1px solid var(--border-light);
       background: var(--topbar-bg);

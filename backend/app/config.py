@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     umami_api_key: str = ""
     online_cache_ttl_seconds: int = 30
 
+    ai_news_cache_ttl_today_seconds: int = 6 * 3600
+    ai_news_cache_ttl_past_seconds: int = 7 * 24 * 3600
+
 
 @lru_cache
 def get_settings() -> Settings:

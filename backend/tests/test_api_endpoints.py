@@ -1288,6 +1288,95 @@ async def test_online_happy_path(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_ai_news_happy_path(client: AsyncClient) -> None:
+    response = await client.get("/api/ai-news?date=2026-05-27")
+    assert response.status_code == 200
+
+    payload = response.json()
+    assert payload["date"] == "2026-05-27"
+    assert payload["stale"] is False
+    assert payload["groups"][0]["category"] == "产品与功能更新"
+    assert payload["groups"][0]["categoryKey"] == "product"
+    assert payload["groups"][0]["items"][0]["url"].startswith("https://huggingface.co/")
+
+
+def test_ai_news_parser_reads_hex2077_daily_sections() -> None:
+    from app.clients.ai_news_fetcher import parse_markdown
+
+    markdown = "\n".join(
+        [
+            "## **今日摘要**",
+            "```",
+            "今天的摘要不应该作为资讯卡片展示。",
+            "```",
+            "### 产品与功能更新",
+            (
+                "1. **正式发布 stable audio 3 权重。** "
+                "该系列模型已上线 [最新音频权重合集(ai资讯)]"
+                "(https://huggingface.co/collections/stabilityai/stable-audio-3) 中。"
+                "![配图](https://source.hex2077.dev/images/demo.avif)"
+            ),
+            "### 前沿研究",
+            (
+                "1. **surgicalmamba 系统大幅提升手术安全。** "
+                "详见 [手术智能识别模型(ai资讯)](https://arxiv.org/abs/2605.14889) 报告。"
+            ),
+        ]
+    )
+
+    groups = parse_markdown(markdown)
+
+    assert groups[0]["category"] == "产品与功能更新"
+    assert groups[0]["category_key"] == "product"
+    assert groups[0]["items"][0]["title"] == "正式发布 stable audio 3 权重。"
+    assert (
+        groups[0]["items"][0]["url"]
+        == "https://huggingface.co/collections/stabilityai/stable-audio-3"
+    )
+    assert groups[0]["items"][0]["source"] == "最新音频权重合集"
+    assert groups[1]["category"] == "前沿研究"
+
+
+@pytest.mark.asyncio
+async def test_ai_news_fetcher_force_refreshes_future_date_when_cache_misses() -> None:
+    from app.clients.ai_news_fetcher import AiNewsFetcher
+
+    calls = 0
+
+    class SearchIndexTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            payload = [
+                {
+                    "slug": "2999-01/2999-01-01",
+                    "title": "2999-01-01 AI 日报",
+                    "type": "docs",
+                    "content": (
+                        "### 产品与功能更新\n"
+                        "1. **未来日报已更新。** "
+                        "[未来来源(ai资讯)](https://example.com/future)"
+                    ),
+                }
+            ]
+            if calls == 1:
+                payload = []
+            return httpx.Response(200, json=payload, request=request)
+
+    fetcher = AiNewsFetcher()
+    await fetcher._client.aclose()
+    fetcher._client = httpx.AsyncClient(transport=SearchIndexTransport())
+    try:
+        groups = await fetcher.fetch_date("2999-01-01")
+    finally:
+        await fetcher.aclose()
+
+    assert calls == 2
+    assert groups[0]["category"] == "产品与功能更新"
+    assert groups[0]["items"][0]["title"] == "未来日报已更新。"
+
+
+@pytest.mark.asyncio
 async def test_market_us_has_items_when_upstream_fails(client: AsyncClient, test_app) -> None:
     from app.clients.akshare import AkShareError
 

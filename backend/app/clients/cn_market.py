@@ -54,7 +54,6 @@ class CnMarketClient:
 
     async def fetch_cn_market(self) -> CnMarketResponse:
         now = _now_iso()
-        trade_date = _recent_trade_date()
         (
             indices_raw,
             stocks_raw,
@@ -67,8 +66,8 @@ class CnMarketClient:
             self._run_akshare("stock_zh_a_spot"),
             self._run_akshare("stock_hot_follow_xq"),
             self._fetch_fund_flow(),
-            self._run_akshare("stock_zt_pool_em", trade_date),
-            self._run_akshare("stock_zt_pool_dtgc_em", trade_date),
+            self._fetch_limit_up(),
+            self._fetch_limit_down(),
             return_exceptions=True,
         )
 
@@ -202,6 +201,98 @@ class CnMarketClient:
                 "深证-涨跌幅": latest[14],
             }
         ]
+
+    async def _fetch_limit_up(self) -> list[dict[str, object]]:
+        """东方财富实时涨幅榜 top 20（涨幅 ≥ 9.5%，按涨幅降序）"""
+        params = {
+            "pn": "1",
+            "pz": "20",
+            "po": "1",
+            "np": "1",
+            "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+            "fltt": "2",
+            "invt": "2",
+            "fid": "f3",
+            "fs": "m:0+t:6,m:0+t:13,m:1+t:2,m:1+t:23",
+            "fields": "f2,f3,f4,f12,f14,f107",
+            "dect": "1",
+            "_": "1",
+        }
+        try:
+            resp = await self._http.get(
+                "https://push2.eastmoney.com/api/qt/clist/get",
+                params=params,
+                headers={"Referer": "https://quote.eastmoney.com/"},
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+        except (httpx.HTTPError, ValueError):
+            return []
+        items = _iter_dict_items(payload)
+        result: list[dict[str, object]] = []
+        for raw in items:
+            change_pct = _number(raw, "f3")
+            if change_pct < 9.5:
+                continue
+            symbol = _normalize_cn_symbol(_text(raw, "f12"))
+            name = _text(raw, "f14")
+            if not symbol or not name:
+                continue
+            result.append(
+                {
+                    "代码": symbol,
+                    "名称": name,
+                    "最新价": _number(raw, "f2"),
+                    "涨跌幅": change_pct,
+                }
+            )
+        return result
+
+    async def _fetch_limit_down(self) -> list[dict[str, object]]:
+        """东方财富实时跌幅榜 bottom 20（跌幅 ≤ -9.5%，按跌幅升序）"""
+        params = {
+            "pn": "1",
+            "pz": "20",
+            "po": "0",
+            "np": "1",
+            "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+            "fltt": "2",
+            "invt": "2",
+            "fid": "f3",
+            "fs": "m:0+t:6,m:0+t:13,m:1+t:2,m:1+t:23",
+            "fields": "f2,f3,f4,f12,f14,f107",
+            "dect": "1",
+            "_": "1",
+        }
+        try:
+            resp = await self._http.get(
+                "https://push2.eastmoney.com/api/qt/clist/get",
+                params=params,
+                headers={"Referer": "https://quote.eastmoney.com/"},
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+        except (httpx.HTTPError, ValueError):
+            return []
+        items = _iter_dict_items(payload)
+        result: list[dict[str, object]] = []
+        for raw in items:
+            change_pct = _number(raw, "f3")
+            if change_pct > -9.5:
+                continue
+            symbol = _normalize_cn_symbol(_text(raw, "f12"))
+            name = _text(raw, "f14")
+            if not symbol or not name:
+                continue
+            result.append(
+                {
+                    "代码": symbol,
+                    "名称": name,
+                    "最新价": _number(raw, "f2"),
+                    "涨跌幅": change_pct,
+                }
+            )
+        return result
 
     async def _fetch_tencent_hot_stock_quotes(
         self,

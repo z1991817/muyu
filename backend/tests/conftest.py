@@ -220,6 +220,27 @@ class FakeUmamiClient:
         return None
 
 
+class FakeAiNewsFetcher:
+    async def fetch_date(self, date: str) -> list[dict[str, object]]:
+        return [
+            {
+                "category": "产品与功能更新",
+                "category_key": "product",
+                "items": [
+                    {
+                        "title": "正式发布 stable audio 3 权重。",
+                        "summary": "该系列模型已上线最新音频权重合集。",
+                        "url": "https://huggingface.co/collections/stabilityai/stable-audio-3",
+                        "source": "最新音频权重合集",
+                    }
+                ],
+            }
+        ]
+
+    async def aclose(self) -> None:
+        return None
+
+
 @pytest_asyncio.fixture
 async def test_app(tmp_path: Path) -> AsyncIterator[FastAPI]:
     import sys
@@ -240,6 +261,7 @@ async def test_app(tmp_path: Path) -> AsyncIterator[FastAPI]:
     app.state.akshare_client = FakeAkShareClient()
     app.state.cn_market_client = FakeCnMarketClient()
     app.state.umami_client = FakeUmamiClient()
+    app.state.ai_news_fetcher = FakeAiNewsFetcher()
     app.state.default_platforms = list(PLATFORMS.keys())
 
     yield app

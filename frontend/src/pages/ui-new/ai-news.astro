@@ -1,0 +1,309 @@
+---
+import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
+import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
+import { fetchAiNews } from "../../lib/api";
+import type { AiNewsGroup } from "../../lib/types";
+
+const pageTitle = "AI 日报 - 每日 AI 资讯精选 | 摸鱼热榜";
+const pageDescription = "每日精选 AI 领域最新动态，涵盖产品发布、前沿研究、开源项目与行业动态。";
+
+// 生成月份列表：hex2077 AI资讯日报从 2026-01 开始提供日报
+const today = new Date();
+const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+const months: { year: number; month: number; label: string }[] = [];
+let cur = new Date(2026, 0, 1); // 2026-01
+while (cur <= today) {
+  months.push({
+    year: cur.getFullYear(),
+    month: cur.getMonth() + 1,
+    label: `${cur.getFullYear()}年${cur.getMonth() + 1}月`,
+  });
+  cur.setMonth(cur.getMonth() + 1);
+}
+months.reverse(); // 最新在上
+
+// 生成某月的日期列表
+function getDaysInMonth(year: number, month: number): string[] {
+  const days: string[] = [];
+  const last = new Date(year, month, 0).getDate();
+  for (let d = last; d >= 1; d--) {
+    const ds = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    if (ds <= todayStr) days.push(ds);
+  }
+  return days;
+}
+
+const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+function formatDay(ds: string): string {
+  const d = new Date(ds + "T00:00:00");
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const w = weekdays[d.getDay()];
+  return `${String(m).padStart(2, "0")}月${String(day).padStart(2, "0")}日 周${w}`;
+}
+
+const defaultDate = todayStr;
+const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
+// SSR：加载今日数据
+let initialGroups: AiNewsGroup[] = [];
+let initialCount = 0;
+try {
+  const data = await fetchAiNews(defaultDate);
+  initialGroups = data.groups;
+  initialCount = data.groups.reduce((acc, g) => acc + g.items.length, 0);
+} catch {
+  // 加载失败时显示空状态，由客户端重试
+}
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/ai-news.css" />
+    <script is:inline>
+      (() => {
+        const skin = localStorage.getItem("trend-skin") || "dim";
+        if (skin === "dim") document.documentElement.dataset.skin = "dim";
+      })();
+    </script>
+  </head>
+  <body>
+    <UiNewTopBar active="ai-news" />
+
+    <div class="an-layout">
+      <!-- 左侧日期树 -->
+      <aside class="an-sidebar" aria-label="日期导航">
+        <nav class="an-tree" aria-label="按月份浏览">
+          {months.map((m) => {
+            const mKey = `${m.year}-${String(m.month).padStart(2, "0")}`;
+            const days = getDaysInMonth(m.year, m.month);
+            const isCurrentMonth = mKey === currentMonthKey;
+            return (
+              <div class="an-month" data-month={mKey} data-open={isCurrentMonth ? "true" : "false"}>
+                <button
+                  class="an-month-btn"
+                  type="button"
+                  aria-expanded={isCurrentMonth ? "true" : "false"}
+                  data-month-toggle={mKey}
+                >
+                  <svg class="an-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M5.5 6.5 8 9l2.5-2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>{m.label}</span>
+                  <span class="an-month-count">{days.length}</span>
+                </button>
+                <ul class="an-days" role="list" hidden={!isCurrentMonth || undefined}>
+                  {days.map((ds) => (
+                    <li>
+                      <button
+                        class="an-day-btn"
+                        type="button"
+                        data-date={ds}
+                        data-active={ds === defaultDate ? "true" : "false"}
+                        aria-current={ds === defaultDate ? "true" : undefined}
+                      >
+                        {formatDay(ds)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <!-- 右侧内容区 -->
+      <main class="an-main" id="an-main">
+        <!-- 顶部标题 -->
+        <div class="an-header">
+          <div class="an-header-left">
+            <h1 class="an-date-title" data-an-date-title>
+              {new Date(defaultDate + "T00:00:00").toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })} AI 日报
+            </h1>
+            <p class="an-date-sub" data-an-date-sub>
+              共 <span data-an-count>{initialCount}</span> 条资讯
+            </p>
+          </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="an-content" data-an-content>
+          <!-- 骨架屏（默认隐藏） -->
+          <div class="an-skeleton" data-an-skeleton hidden>
+            {Array.from({ length: 3 }).map(() => (
+              <div class="an-skeleton-card">
+                <div class="an-skeleton-line an-skeleton-line--title" />
+                <div class="an-skeleton-line an-skeleton-line--body" />
+                <div class="an-skeleton-line an-skeleton-line--body" />
+                <div class="an-skeleton-line an-skeleton-line--meta" />
+              </div>
+            ))}
+          </div>
+
+          <!-- 空状态（默认隐藏） -->
+          <div class="an-empty" data-an-empty hidden>
+            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" />
+              <path d="M16 24h16M24 16v16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".4" />
+            </svg>
+            <p>暂无数据，请稍后再试</p>
+          </div>
+
+          <!-- 真实内容 -->
+          <div class="an-groups" data-an-groups>
+            {initialGroups.map((group) => (
+              <section class="an-group" data-category={group.categoryKey}>
+                <h2 class="an-group-title">
+                  <span class="an-group-dot" data-category={group.categoryKey} aria-hidden="true" />
+                  {group.category}
+                </h2>
+                <ul class="an-cards" role="list">
+                  {group.items.map((item, index) => (
+                    <li>
+                      <article class="an-card">
+                        <span class="an-card-rank">{String(index + 1).padStart(2, "0")}</span>
+                        <div class="an-card-body">
+                          <a class="an-card-title" href={item.url} target="_blank" rel="noopener noreferrer">
+                            {item.title}
+                            <svg class="an-ext-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <path d="M6.5 3.5H3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V9.5M9.5 2.5h4m0 0v4m0-4-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                          </a>
+                          <p class="an-card-summary">{item.summary}</p>
+                          <footer class="an-card-meta">
+                            <span class="an-source-badge">{item.source}</span>
+                          </footer>
+                        </div>
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <UiNewFooter />
+
+    <script is:inline>
+      (() => {
+        const API_BASE = document.querySelector("[data-ui-new-api-base]")?.dataset.uiNewApiBase || "/api";
+
+        // 月份展开/收起
+        document.querySelectorAll("[data-month-toggle]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const mKey = btn.dataset.monthToggle;
+            const monthEl = document.querySelector(`[data-month="${mKey}"]`);
+            const daysList = monthEl?.querySelector(".an-days");
+            if (!monthEl || !daysList) return;
+            const isOpen = monthEl.dataset.open === "true";
+            monthEl.dataset.open = isOpen ? "false" : "true";
+            btn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+            daysList.hidden = isOpen;
+          });
+        });
+
+        function setActiveDate(ds) {
+          document.querySelectorAll(".an-day-btn").forEach((b) => {
+            const isThis = b.dataset.date === ds;
+            b.dataset.active = isThis ? "true" : "false";
+            b.setAttribute("aria-current", isThis ? "true" : "false");
+          });
+        }
+
+        function formatDateTitle(ds) {
+          const d = new Date(ds + "T00:00:00");
+          return d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" }) + " AI 日报";
+        }
+
+        function scrollContentTop() {
+          const mainEl = document.querySelector("#an-main");
+          const targetTop = Math.max((mainEl?.getBoundingClientRect().top || 0) + window.scrollY - 72, 0);
+          window.scrollTo({ top: targetTop, behavior: "smooth" });
+        }
+
+        function renderGroups(groups) {
+          const EXT_ICON = `<svg class="an-ext-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6.5 3.5H3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V9.5M9.5 2.5h4m0 0v4m0-4-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          const escapeHtml = (value) => String(value || "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+          const escapeAttr = (value) => escapeHtml(value).replace(/`/g, "&#96;");
+          return groups.map((g) => `
+            <section class="an-group" data-category="${escapeAttr(g.categoryKey)}">
+              <h2 class="an-group-title">
+                <span class="an-group-dot" data-category="${escapeAttr(g.categoryKey)}" aria-hidden="true"></span>
+                ${escapeHtml(g.category)}
+              </h2>
+              <ul class="an-cards" role="list">
+                ${g.items.map((item, index) => `
+                  <li>
+                    <article class="an-card">
+                      <span class="an-card-rank">${String(index + 1).padStart(2, "0")}</span>
+                      <div class="an-card-body">
+                        <a class="an-card-title" href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer">
+                          ${escapeHtml(item.title)}${EXT_ICON}
+                        </a>
+                        <p class="an-card-summary">${escapeHtml(item.summary)}</p>
+                        <footer class="an-card-meta">
+                          <span class="an-source-badge">${escapeHtml(item.source)}</span>
+                        </footer>
+                      </div>
+                    </article>
+                  </li>`).join("")}
+              </ul>
+            </section>`).join("");
+        }
+
+        async function loadDate(ds) {
+          const titleEl = document.querySelector("[data-an-date-title]");
+          const countEl = document.querySelector("[data-an-count]");
+          const groupsEl = document.querySelector("[data-an-groups]");
+          const skeletonEl = document.querySelector("[data-an-skeleton]");
+          const emptyEl = document.querySelector("[data-an-empty]");
+          if (!groupsEl) return;
+
+          if (titleEl) titleEl.textContent = formatDateTitle(ds);
+          setActiveDate(ds);
+          scrollContentTop();
+
+          // show skeleton
+          if (skeletonEl) skeletonEl.hidden = false;
+          if (emptyEl) emptyEl.hidden = true;
+          groupsEl.hidden = true;
+
+          try {
+            const res = await fetch(`${API_BASE}/ai-news?date=${encodeURIComponent(ds)}`);
+            if (!res.ok) throw new Error("fetch failed");
+            const data = await res.json();
+            const groups = data.groups || [];
+            const total = groups.reduce((s, g) => s + g.items.length, 0);
+
+            if (countEl) countEl.textContent = String(total);
+
+            if (groups.length === 0) {
+              if (emptyEl) emptyEl.hidden = false;
+            } else {
+              groupsEl.innerHTML = renderGroups(groups);
+              groupsEl.hidden = false;
+            }
+          } catch {
+            if (emptyEl) emptyEl.hidden = false;
+          } finally {
+            if (skeletonEl) skeletonEl.hidden = true;
+          }
+        }
+
+        document.querySelectorAll(".an-day-btn").forEach((btn) => {
+          btn.addEventListener("click", () => loadDate(btn.dataset.date));
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -137,3 +137,23 @@ export interface SourcesResponse {
   stale: boolean;
   updatedAt: string;
 }
+
+export interface AiNewsItem {
+  title: string;
+  summary: string;
+  url: string;
+  source: string;
+}
+
+export interface AiNewsGroup {
+  category: string;
+  categoryKey: string;
+  items: AiNewsItem[];
+}
+
+export interface AiNewsResponse {
+  date: string;
+  groups: AiNewsGroup[];
+  stale: boolean;
+  updatedAt: string;
+}

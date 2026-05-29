@@ -828,7 +828,7 @@
         }
 
         main {
-          padding: 24px 14px 40px;
+          padding: 24px 14px calc(72px + env(safe-area-inset-bottom, 0px));
         }
 
         .page-head {
@@ -873,6 +873,12 @@
         .overview,
         .platform-grid {
           grid-template-columns: 1fr;
+        }
+
+        .hot-list {
+          max-height: none;
+          overflow-y: visible;
+          overscroll-behavior: auto;
         }
 
         .skin-switch-note {

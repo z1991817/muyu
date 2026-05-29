@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import (
+    ai_news_router,
     health_router,
     home_router,
     market_router,
@@ -14,6 +15,7 @@ from app.api import (
     trends_router,
 )
 from app.cache.sqlite import SQLiteCache
+from app.clients.ai_news_fetcher import AiNewsFetcher
 from app.clients.akshare import AkShareClient
 from app.clients.cn_market import CnMarketClient
 from app.clients.seesea import SeeSeaClient
@@ -34,6 +36,7 @@ async def lifespan(app: FastAPI):
     app.state.akshare_client = AkShareClient()
     app.state.cn_market_client = CnMarketClient()
     app.state.umami_client = UmamiClient()
+    app.state.ai_news_fetcher = AiNewsFetcher()
     app.state.default_platforms = settings.seesea_default_platforms
 
     scheduler_task = start_scheduler(app)
@@ -45,6 +48,7 @@ async def lifespan(app: FastAPI):
         await app.state.akshare_client.aclose()
         await app.state.cn_market_client.aclose()
         await app.state.umami_client.aclose()
+        await app.state.ai_news_fetcher.aclose()
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
@@ -62,4 +66,5 @@ app.include_router(trends_router, prefix=settings.api_prefix)
 app.include_router(sources_router, prefix=settings.api_prefix)
 app.include_router(market_router, prefix=settings.api_prefix)
 app.include_router(online_router, prefix=settings.api_prefix)
+app.include_router(ai_news_router, prefix=settings.api_prefix)
 app.include_router(health_router)
