@@ -105,6 +105,7 @@ frontend/
 - [ ] 已判断本次 UI / 交互问题是否属于公共层能力；主题、导航、字体、基础 reset、按钮/输入基础态、页面宽度与间距体系、通用交互逻辑不得散落到单页重复实现
 - [ ] 页面先引入 `/ui-new/base.css`，再引入自己的页面 CSS；全局 token、暗色 token、基础 reset 只维护在 `public/ui-new/base.css`
 - [ ] 页面使用 `src/components/ui-new/UiNewTopBar.astro`，没有自定义重复导航
+- [ ] 简约版滚动容器使用 `public/ui-new/base.css` 提供的 `.ui-scrollbar`，禁止在页面 CSS 里重复写原生滚动条样式或保留浏览器默认粗滚动条
 - [ ] 字体栈为 Geist / Inter / system sans，没有加载 Riso 五套字体
 - [ ] 使用黑白灰 token，强调色克制，不使用糖果色平台卡
 - [ ] 使用 1px hairline、小圆角、轻阴影，不使用 Riso 硬阴影、旋转、胶带、贴纸、印章

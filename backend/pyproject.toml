@@ -13,6 +13,7 @@ dependencies = [
   "aiosqlite>=0.21.0",
   "apscheduler>=3.10.4",
   "akshare>=1.17.86",
+  "opentdx==0.2.4",
   "seesea==2.2.2",
   "seesea-core>=2.0.4"
 ]

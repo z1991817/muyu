@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     )
 
     seesea_base_url: str = "http://127.0.0.1:8888"
-    seesea_stock_sdk_fallback_enabled: bool = False
     cn_market_scheduler_enabled: bool = False
     seesea_default_platforms: list[str] = Field(
         default_factory=lambda: [

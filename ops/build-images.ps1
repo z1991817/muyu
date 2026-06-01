@@ -12,12 +12,18 @@ param(
     [ValidateSet('all', 'api', 'seesea', 'frontend', 'nginx')]
     [string[]]$Service = @('all'),
 
+    [string]$PublicSiteUrl = $env:PUBLIC_SITE_URL,
+
     [switch]$Push,
 
     [switch]$NoLatest
 )
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $PublicSiteUrl) {
+    $PublicSiteUrl = 'https://moyuhot.com'
+}
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $tag = "$TagDate-$Version"
@@ -73,6 +79,7 @@ try {
     if ($buildAll -or $Service -contains 'frontend') {
         Build-Image 'frontend' @(
             '--build-arg', 'API_BASE=http://api:8000/api',
+            '--build-arg', "PUBLIC_SITE_URL=$PublicSiteUrl",
             '-f', 'frontend/Dockerfile',
             'frontend'
         )

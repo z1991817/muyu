@@ -68,3 +68,8 @@ class SQLiteCache:
                 ),
             )
             await conn.commit()
+
+    async def delete(self, key: str) -> None:
+        async with aiosqlite.connect(self._db_path.as_posix()) as conn:
+            await conn.execute("DELETE FROM cache_entries WHERE key = ?", (key,))
+            await conn.commit()

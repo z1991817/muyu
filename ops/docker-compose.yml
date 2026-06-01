@@ -21,7 +21,6 @@ services:
     image: moyu-api:latest
     environment:
       SEESEA_BASE_URL: http://seesea:8080
-      SEESEA_STOCK_SDK_FALLBACK_ENABLED: ${SEESEA_STOCK_SDK_FALLBACK_ENABLED:-false}
       UMAMI_API_BASE: ${UMAMI_API_BASE:-https://api.umami.is/v1}
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-5ed62d5d-3114-49cb-85b7-491c0cf277c1}
       UMAMI_API_KEY: ${UMAMI_API_KEY:-}
@@ -43,8 +42,6 @@ services:
   cn-market-refresh:
     image: moyu-api:latest
     environment:
-      SEESEA_BASE_URL: http://seesea:8080
-      SEESEA_STOCK_SDK_FALLBACK_ENABLED: "true"
       CACHE_DB_PATH: /app/data/cache.db
     volumes:
       - moyu_api_data:/app/data
@@ -61,9 +58,11 @@ services:
       dockerfile: Dockerfile
       args:
         API_BASE: http://api:8000/api
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://moyuhot.com}
     image: moyu-frontend:latest
     environment:
       API_BASE: http://api:8000/api
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://moyuhot.com}
       TZ: Asia/Shanghai  
     ports:
       - "${MOYU_FRONTEND_PORT:-127.0.0.1:14321}:4321"

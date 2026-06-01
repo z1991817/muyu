@@ -13,6 +13,139 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _fake_cn_market_response() -> object:
+    from app.models.cn_market import (
+        CnActiveStock,
+        CnFundFlow,
+        CnMarketAnalysis,
+        CnMarketBreadth,
+        CnMarketIndex,
+        CnMarketResponse,
+        CnMarketStock,
+        CnRangeStock,
+        CnSectorTrend,
+    )
+
+    now = _now_iso()
+    breadth = [
+        CnMarketBreadth(name="上涨家数", value="600", change_pct=50.0, direction="in"),
+        CnMarketBreadth(name="下跌家数", value="500", change_pct=41.67, direction="out"),
+        CnMarketBreadth(name="平盘家数", value="100", change_pct=8.33, direction="flat"),
+    ]
+    stocks = [
+        CnMarketStock(
+            symbol=f"6005{index:02d}",
+            name=f"测试股票{index}",
+            price=10.0 + index,
+            change=0.5 if index % 2 == 0 else -0.2,
+            change_pct=1.2 if index % 2 == 0 else -0.8,
+            volume="123456",
+            turnover="208000000",
+            url=f"https://finance.sina.com.cn/realstock/company/sh6005{index:02d}/nc.shtml",
+            updated_at=now,
+            disclaimer="仅供信息展示，不构成投资建议",
+        )
+        for index in range(10)
+    ]
+    return CnMarketResponse(
+        indices=[
+            CnMarketIndex(
+                symbol="000001",
+                name="上证指数",
+                price=3120.5,
+                change=12.3,
+                change_pct=0.39,
+                url="https://finance.sina.com.cn/realstock/company/sh000001/nc.shtml",
+                updated_at=now,
+                disclaimer="仅供信息展示，不构成投资建议",
+            ),
+            CnMarketIndex(
+                symbol="000300",
+                name="沪深300",
+                price=3900.0,
+                change=18.0,
+                change_pct=0.46,
+                url="https://finance.sina.com.cn/realstock/company/sh000300/nc.shtml",
+                updated_at=now,
+                disclaimer="仅供信息展示，不构成投资建议",
+            ),
+            CnMarketIndex(
+                symbol="000905",
+                name="中证500",
+                price=5800.0,
+                change=-10.0,
+                change_pct=-0.17,
+                url="https://finance.sina.com.cn/realstock/company/sh000905/nc.shtml",
+                updated_at=now,
+                disclaimer="仅供信息展示，不构成投资建议",
+            ),
+        ],
+        stocks=stocks,
+        analysis=CnMarketAnalysis(
+            market_breadth=breadth,
+            fund_flows=[
+                CnFundFlow(
+                    name=item.name,
+                    value=item.value,
+                    change_pct=item.change_pct,
+                    direction=item.direction,
+                )
+                for item in breadth
+            ],
+            limit_up=[],
+            limit_down=[],
+            top_gainers=[
+                CnRangeStock(
+                    symbol="600500",
+                    name="测试股票0",
+                    price=10.0,
+                    change_pct=1.2,
+                    reason="涨幅靠前",
+                    url="https://finance.sina.com.cn/realstock/company/sh600500/nc.shtml",
+                )
+            ],
+            top_losers=[
+                CnRangeStock(
+                    symbol="600501",
+                    name="测试股票1",
+                    price=11.0,
+                    change_pct=-0.8,
+                    reason="跌幅靠前",
+                    url="https://finance.sina.com.cn/realstock/company/sh600501/nc.shtml",
+                )
+            ],
+            active_stocks=[
+                CnActiveStock(
+                    symbol="600501",
+                    name="测试股票1",
+                    price=11.0,
+                    change_pct=1.2,
+                    volume="123456",
+                    turnover="208000000",
+                    reason="成交额活跃",
+                    url="https://finance.sina.com.cn/realstock/company/sh600501/nc.shtml",
+                )
+            ],
+            sector_trends=[
+                CnSectorTrend(
+                    name="测试行业",
+                    change_pct=2.3,
+                    leading_symbol="600501",
+                    leading_name="测试股票1",
+                    leading_change_pct=1.2,
+                    url="https://vip.stock.finance.sina.com.cn/mkt/#new_ljhy",
+                )
+            ],
+        ),
+        source="opentdx",
+        data_date="2026-05-29",
+        market_status="trading",
+        stale=False,
+        stale_reason=None,
+        updated_at=now,
+    )
+
+
 class FakeSeeSeaClient:
     async def fetch_multiple(self, platforms: list[str]) -> list[object]:
         from app.models.trend import Trend
@@ -51,129 +184,13 @@ class FakeSeeSeaClient:
             for meta in PLATFORMS.values()
         ]
 
-    async def fetch_cn_market(self) -> object:
-        from app.models.cn_market import (
-            CnFundFlow,
-            CnLimitStock,
-            CnMarketAnalysis,
-            CnMarketIndex,
-            CnMarketResponse,
-            CnMarketStock,
-        )
-
-        now = _now_iso()
-        return CnMarketResponse(
-            indices=[
-                CnMarketIndex(
-                    symbol="000001",
-                    name="上证指数",
-                    price=3120.5,
-                    change=12.3,
-                    change_pct=0.39,
-                    url="https://quote.eastmoney.com/000001.html",
-                    updated_at=now,
-                    disclaimer="仅供信息展示，不构成投资建议",
-                )
-            ],
-            stocks=[
-                CnMarketStock(
-                    symbol="600519",
-                    name="贵州茅台",
-                    price=1688.0,
-                    change=12.5,
-                    change_pct=0.75,
-                    volume="12.3万",
-                    turnover="20.8亿",
-                    url="https://quote.eastmoney.com/600519.html",
-                    updated_at=now,
-                    disclaimer="仅供信息展示，不构成投资建议",
-                )
-            ],
-            analysis=CnMarketAnalysis(
-                fund_flows=[
-                    CnFundFlow(name="上涨家数", value="1", change_pct=100.0, direction="in")
-                ],
-                limit_up=[
-                    CnLimitStock(
-                        symbol="000001",
-                        name="平安银行",
-                        price=12.8,
-                        change_pct=10.0,
-                        reason="金融活跃",
-                        url="https://quote.eastmoney.com/000001.html",
-                    )
-                ],
-                limit_down=[],
-            ),
-            stale=False,
-            updated_at=now,
-        )
-
     async def aclose(self) -> None:
         return None
 
 
 class FakeCnMarketClient:
     async def fetch_cn_market(self) -> object:
-        from app.models.cn_market import (
-            CnFundFlow,
-            CnLimitStock,
-            CnMarketAnalysis,
-            CnMarketIndex,
-            CnMarketResponse,
-            CnMarketStock,
-        )
-
-        now = _now_iso()
-        return CnMarketResponse(
-            indices=[
-                CnMarketIndex(
-                    symbol="000001",
-                    name="上证指数",
-                    price=3120.5,
-                    change=12.3,
-                    change_pct=0.39,
-                    url="https://quote.eastmoney.com/000001.html",
-                    updated_at=now,
-                    disclaimer="仅供信息展示，不构成投资建议",
-                )
-            ],
-            stocks=[
-                CnMarketStock(
-                    symbol="600519",
-                    name="贵州茅台",
-                    price=1688.0,
-                    change=12.5,
-                    change_pct=0.75,
-                    volume="12.3万",
-                    turnover="20.8亿",
-                    url="https://quote.eastmoney.com/600519.html",
-                    updated_at=now,
-                    disclaimer="仅供信息展示，不构成投资建议",
-                )
-            ],
-            analysis=CnMarketAnalysis(
-                fund_flows=[
-                    CnFundFlow(name="上涨家数", value="1", change_pct=100.0, direction="in")
-                ],
-                limit_up=[
-                    CnLimitStock(
-                        symbol="000001",
-                        name="平安银行",
-                        price=12.8,
-                        change_pct=10.0,
-                        reason="金融活跃",
-                        url="https://quote.eastmoney.com/000001.html",
-                    )
-                ],
-                limit_down=[],
-            ),
-            stale=False,
-            updated_at=now,
-        )
-
-    async def fetch_cn_market_recent_trade_snapshot(self) -> object:
-        return await self.fetch_cn_market()
+        return _fake_cn_market_response()
 
     async def aclose(self) -> None:
         return None

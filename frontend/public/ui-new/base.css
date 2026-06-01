@@ -99,3 +99,28 @@ a {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
 }
+
+.ui-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--text-tertiary) 44%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.ui-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ui-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ui-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: color-mix(in srgb, var(--text-tertiary) 38%, transparent);
+}
+
+.ui-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--text-secondary) 58%, transparent);
+}

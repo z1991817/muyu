@@ -20,7 +20,13 @@ export const SITE_KEYWORDS = SITE_KEYWORD_LIST.join(",");
 export const SITE_DESCRIPTION =
   "摸鱼热榜是一个热搜平台，聚合微博、知乎、B站、抖音、贴吧、V2EX、GitHub 等热门榜单，提供一站式热搜聚合与新闻聚合阅读入口。";
 
-export const SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? "https://moyu.example.com")
+const runtimeSiteUrl = (
+  globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  }
+).process?.env?.PUBLIC_SITE_URL;
+
+export const SITE_URL = (runtimeSiteUrl ?? import.meta.env.PUBLIC_SITE_URL ?? "https://moyuhot.com")
   .replace(/\/+$/, "");
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/logo-orange-4-punch.svg`;

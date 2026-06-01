@@ -1,7 +1,9 @@
 from app.clients.akshare import AkShareClient, AkShareError
-from app.clients.cn_market import CnMarketClient, CnMarketError
 from app.clients.seesea import SeeSeaClient, SeeSeaError, get_seesea_client
+from app.clients.tdx_market import CnMarketError, TdxMarketClient
 from app.clients.umami import UmamiClient, UmamiError, get_umami_client
+
+CnMarketClient = TdxMarketClient
 
 __all__ = [
     "SeeSeaClient",
@@ -11,6 +13,7 @@ __all__ = [
     "AkShareError",
     "CnMarketClient",
     "CnMarketError",
+    "TdxMarketClient",
     "UmamiClient",
     "UmamiError",
     "get_umami_client",

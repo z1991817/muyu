@@ -8,7 +8,13 @@ from fastapi import APIRouter, Depends, Request
 from app.cache.policy import as_fresh, as_stale, get_cached_response, market_ttl_seconds
 from app.cache.sqlite import SQLiteCache
 from app.clients.akshare import AkShareClient, AkShareError
-from app.models.cn_market import CnMarketAnalysis, CnMarketResponse
+from app.clients.tdx_market import (
+    CN_MARKET_NO_SNAPSHOT_REASON,
+    empty_cn_market_response,
+    is_complete_cn_market_response,
+    mark_cn_market_stale,
+)
+from app.models.cn_market import CnMarketResponse
 from app.models.market import MarketResponse, StocksResponse
 
 router = APIRouter(tags=["market"])
@@ -31,16 +37,6 @@ def _has_real_market_values(response: MarketResponse) -> bool:
         return False
     return any(
         item.price != 0 or item.change != 0 or item.change_pct != 0 for item in response.items
-    )
-
-
-def empty_cn_market_response() -> CnMarketResponse:
-    return CnMarketResponse(
-        indices=[],
-        stocks=[],
-        analysis=CnMarketAnalysis(fund_flows=[], limit_up=[], limit_down=[]),
-        stale=True,
-        updated_at=_now_iso(),
     )
 
 
@@ -111,5 +107,15 @@ async def market_cn(
     cached = await get_cached_response(cache, "market:cn", CnMarketResponse)
     if cached is not None:
         response, is_expired = cached
-        return as_stale(response) if is_expired or response.stale else as_fresh(response)
-    return empty_cn_market_response()
+        if not is_complete_cn_market_response(response):
+            await cache.delete("market:cn")
+            return empty_cn_market_response(CN_MARKET_NO_SNAPSHOT_REASON)
+        if is_expired:
+            return mark_cn_market_stale(response, "CN_MARKET_CACHE_EXPIRED")
+        if response.stale:
+            return mark_cn_market_stale(
+                response,
+                response.stale_reason or "CN_MARKET_STALE_SNAPSHOT",
+            )
+        return as_fresh(response)
+    return empty_cn_market_response(CN_MARKET_NO_SNAPSHOT_REASON)

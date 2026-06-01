@@ -1,21 +1,25 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import logging
 
 from app.cache.sqlite import SQLiteCache
-from app.clients.cn_market import CnMarketClient
+from app.clients.tdx_market import TdxMarketClient
 from app.config import settings
 from app.scheduler import _refresh_cn_market, cn_market_refresh_interval_seconds
 
 logger = logging.getLogger(__name__)
 
 
-async def refresh_once() -> int:
+async def refresh_once(*, purge: bool = False) -> int:
     cache = SQLiteCache(settings.cache_db_path)
     await cache.init()
+    if purge:
+        await cache.delete("market:cn")
+        logger.info("cn-market-job: purged previous cn market cache")
 
-    cn_market = CnMarketClient()
+    cn_market = TdxMarketClient()
     try:
         response = await _refresh_cn_market(cn_market, cache)
         if response is None:
@@ -33,8 +37,15 @@ async def refresh_once() -> int:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--purge",
+        action="store_true",
+        help="delete the previous market:cn cache before refreshing",
+    )
+    args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    raise SystemExit(asyncio.run(refresh_once()))
+    raise SystemExit(asyncio.run(refresh_once(purge=args.purge)))
 
 
 async def refresh_loop() -> None:

@@ -53,6 +53,33 @@ export interface CnMarketIndex {
   disclaimer: string;
 }
 
+export interface CnMarketBreadth {
+  name: string;
+  value: string;
+  changePct: number;
+  direction: string;
+}
+
+export interface CnActiveStock {
+  symbol: string;
+  name: string;
+  price: number;
+  changePct: number;
+  volume: string;
+  turnover: string;
+  reason: string;
+  url: string;
+}
+
+export interface CnSectorTrend {
+  name: string;
+  changePct: number;
+  leadingSymbol: string;
+  leadingName: string;
+  leadingChangePct: number;
+  url: string;
+}
+
 export interface CnMarketStock {
   symbol: string;
   name: string;
@@ -82,17 +109,35 @@ export interface CnLimitStock {
   url: string;
 }
 
+export interface CnRangeStock {
+  symbol: string;
+  name: string;
+  price: number;
+  changePct: number;
+  reason: string;
+  url: string;
+}
+
 export interface CnMarketAnalysis {
+  marketBreadth: CnMarketBreadth[];
   fundFlows: CnFundFlow[];
   limitUp: CnLimitStock[];
   limitDown: CnLimitStock[];
+  topGainers: CnRangeStock[];
+  topLosers: CnRangeStock[];
+  activeStocks: CnActiveStock[];
+  sectorTrends: CnSectorTrend[];
 }
 
 export interface CnMarketResponse {
   indices: CnMarketIndex[];
   stocks: CnMarketStock[];
   analysis: CnMarketAnalysis;
+  source: string;
+  dataDate: string;
+  marketStatus: string;
   stale: boolean;
+  staleReason: string | null;
   updatedAt: string;
 }
 

@@ -2,17 +2,25 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Sequence
 from contextlib import suppress
 from datetime import UTC, datetime, time
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
+from pydantic import ValidationError
+
 from app.cache.policy import market_ttl_seconds
 from app.cache.sqlite import SQLiteCache
 from app.clients.akshare import AkShareClient, AkShareError
-from app.clients.cn_market import CnMarketClient, CnMarketError
 from app.clients.seesea import SeeSeaClient, SeeSeaError
+from app.clients.tdx_market import (
+    CN_MARKET_INCOMPLETE_REASON,
+    CN_MARKET_REFRESH_FAILED_REASON,
+    CnMarketError,
+    TdxMarketClient,
+    is_complete_cn_market_response,
+    mark_cn_market_stale,
+)
 from app.config import settings
 from app.lib.china_holidays import get_china_rest_day_info
 from app.models.cn_market import CnMarketResponse
@@ -31,8 +39,6 @@ CHINA_TIME_ZONE = ZoneInfo("Asia/Shanghai")
 
 class CnMarketFetcher(Protocol):
     async def fetch_cn_market(self) -> CnMarketResponse: ...
-
-    async def fetch_cn_market_recent_trade_snapshot(self) -> CnMarketResponse: ...
 
 
 def _now_iso() -> str:
@@ -169,12 +175,15 @@ async def _refresh_cn_market(
     cn_market: CnMarketFetcher,
     cache: SQLiteCache,
 ) -> CnMarketResponse | None:
+    stale_reason = CN_MARKET_REFRESH_FAILED_REASON
     try:
         response = await asyncio.wait_for(
             cn_market.fetch_cn_market(),
             timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
         )
-        response = await _merge_cn_market_cache_on_partial_empty(response, cache)
+        if not is_complete_cn_market_response(response):
+            raise CnMarketError(CN_MARKET_INCOMPLETE_REASON, "TDX A 股快照不完整")
+        response = response.model_copy(update={"stale": False, "stale_reason": None})
         await cache.set(
             "market:cn",
             response.model_dump(mode="json"),
@@ -187,100 +196,50 @@ async def _refresh_cn_market(
             len(response.stocks),
         )
         return response
-    except SeeSeaError as e:
-        logger.warning("scheduler: cn market refresh failed: %s", e)
     except CnMarketError as e:
+        stale_reason = e.code
         logger.warning("scheduler: cn market refresh failed: %s", e)
     except TimeoutError:
+        stale_reason = "CN_MARKET_REFRESH_TIMEOUT"
         logger.warning("scheduler: cn market refresh timed out")
 
-    try:
-        snapshot = await asyncio.wait_for(
-            cn_market.fetch_cn_market_recent_trade_snapshot(),
-            timeout=CN_MARKET_REFRESH_TIMEOUT_SECONDS,
-        )
-        snapshot = await _merge_cn_market_cache_on_partial_empty(snapshot, cache)
-        await cache.set(
-            "market:cn",
-            snapshot.model_dump(mode="json"),
-            ttl_seconds=market_ttl_seconds("closed"),
-            source_status="stale",
-        )
-        logger.info(
-            "scheduler: cn market snapshot refreshed (%d indices, %d stocks)",
-            len(snapshot.indices),
-            len(snapshot.stocks),
-        )
-        return snapshot
-    except SeeSeaError as e:
-        logger.warning("scheduler: cn market snapshot refresh failed: %s", e)
-        return None
-    except CnMarketError as e:
-        logger.warning("scheduler: cn market snapshot refresh failed: %s", e)
-        return None
-    except TimeoutError:
-        logger.warning("scheduler: cn market snapshot refresh timed out")
-        return None
+    return await _mark_cached_cn_market_stale(cache, stale_reason)
 
 
-async def _merge_cn_market_cache_on_partial_empty(
-    response: CnMarketResponse,
+async def _mark_cached_cn_market_stale(
     cache: SQLiteCache,
-) -> CnMarketResponse:
-    if (
-        response.indices
-        and response.stocks
-        and response.analysis.fund_flows
-        and response.analysis.limit_up
-    ):
-        return response
-
+    stale_reason: str,
+) -> CnMarketResponse | None:
     cached = await cache.get("market:cn")
     if cached is None:
-        return response
+        return None
 
     payload, _is_expired = cached
     try:
         cached_response = CnMarketResponse.model_validate(payload)
-    except Exception:
-        return response
-    updates: dict[str, object] = {}
-    if not response.indices and cached_response.indices:
-        updates["indices"] = cached_response.indices
-    if (
-        (not response.stocks or _cn_market_stocks_missing_volume_or_turnover(response.stocks))
-        and cached_response.stocks
-        and not _cn_market_stocks_missing_volume_or_turnover(cached_response.stocks)
-    ):
-        updates["stocks"] = cached_response.stocks
+    except ValidationError:
+        return None
+    if not is_complete_cn_market_response(cached_response):
+        return None
 
-    analysis = response.analysis
-    analysis_updates: dict[str, object] = {}
-    if not analysis.limit_up and cached_response.analysis.limit_up:
-        analysis_updates["limit_up"] = cached_response.analysis.limit_up
-    if not analysis.limit_down and cached_response.analysis.limit_down:
-        analysis_updates["limit_down"] = cached_response.analysis.limit_down
-    if analysis_updates:
-        updates["analysis"] = analysis.model_copy(update=analysis_updates)
-
-    if not updates:
-        return response
-
-    updates["stale"] = True
-    return response.model_copy(update=updates)
-
-
-def _cn_market_stocks_missing_volume_or_turnover(stocks: Sequence[object]) -> bool:
-    return bool(stocks) and any(
-        getattr(item, "volume", "-") == "-" or getattr(item, "turnover", "-") == "-"
-        for item in stocks
+    stale_response = mark_cn_market_stale(cached_response, stale_reason)
+    await cache.set(
+        "market:cn",
+        stale_response.model_dump(mode="json"),
+        ttl_seconds=market_ttl_seconds("closed"),
+        source_status="stale",
     )
+    logger.info(
+        "scheduler: cn market kept previous complete snapshot (%s)",
+        stale_reason,
+    )
+    return stale_response
 
 
 async def _refresh_all(
     seesea: SeeSeaClient,
     akshare: AkShareClient,
-    cn_market: CnMarketClient,
+    cn_market: TdxMarketClient,
     cache: SQLiteCache,
     default_platforms: list[str],
 ) -> None:
@@ -324,7 +283,7 @@ async def run_refresh_loop(app) -> None:  # type: ignore[no-untyped-def]
     cache: SQLiteCache = app.state.cache
     seesea: SeeSeaClient = app.state.seesea_client
     akshare: AkShareClient = app.state.akshare_client
-    cn_market: CnMarketClient = app.state.cn_market_client
+    cn_market: TdxMarketClient = app.state.cn_market_client
     default_platforms: list[str] = app.state.default_platforms
 
     await asyncio.sleep(INITIAL_REFRESH_DELAY_SECONDS)

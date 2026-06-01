@@ -108,31 +108,6 @@
   gap: 4px;
   padding: 10px;
   overflow-y: auto;
-  scrollbar-color: color-mix(in srgb, var(--text-tertiary) 44%, transparent) transparent;
-  scrollbar-width: thin;
-}
-
-.chat-thread-list::-webkit-scrollbar,
-.chat-message-stream::-webkit-scrollbar {
-  width: 8px;
-}
-
-.chat-thread-list::-webkit-scrollbar-track,
-.chat-message-stream::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-thread-list::-webkit-scrollbar-thumb,
-.chat-message-stream::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 999px;
-  background-clip: padding-box;
-  background-color: color-mix(in srgb, var(--text-tertiary) 38%, transparent);
-}
-
-.chat-thread-list::-webkit-scrollbar-thumb:hover,
-.chat-message-stream::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in srgb, var(--text-secondary) 58%, transparent);
 }
 
 .chat-thread-item {
@@ -354,8 +329,6 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
-  scrollbar-color: color-mix(in srgb, var(--text-tertiary) 44%, transparent) transparent;
-  scrollbar-width: thin;
 }
 
 /* ── Empty state ── */
